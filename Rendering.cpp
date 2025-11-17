@@ -32,11 +32,13 @@ int Rendering::start(GLFWwindow* window) {
 
     VertexArrayObject vao;
    
-    BufferObject vbo(GL_ARRAY_BUFFER, Simulation::get_instance().particles);
-    //BufferObject vbo(GL_ARRAY_BUFFER, vertices);
+    //BufferObject vbo(GL_ARRAY_BUFFER, Simulation::get_instance().particles);
+    Simulation::get_instance().update_vertex_data(&vertices);
 
-    GLsizei stride = sizeof(Particle);
+    BufferObject vbo(GL_ARRAY_BUFFER, vertices);
 
+    //GLsizei stride = sizeof(Particle);
+	GLsizei stride = 6 * sizeof(GLfloat);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3*sizeof(GLfloat)));
@@ -57,20 +59,16 @@ int Rendering::start(GLFWwindow* window) {
 
 		std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
         
-        //Update Vertex Data
-        /*vertices.clear();
-        for (const auto& particle : Simulation::get_instance().particles) {
-            vertices.push_back(particle.pos.x);
-            vertices.push_back(particle.pos.y);
-            vertices.push_back(particle.pos.z);
-            vertices.push_back(particle.color.r);
-            vertices.push_back(particle.color.g);
-            vertices.push_back(particle.color.b);
-        }*/
-
+        //Simulation Step
         Simulation::get_instance().step(deltaTime);
+
+        //Update Vertex Data
+        Simulation::get_instance().update_vertex_data(&vertices);
+        
+
 		vbo.Bind();
-		glBufferData(GL_ARRAY_BUFFER, Simulation::get_instance().particles.size() * sizeof(Particle), Simulation::get_instance().particles.data(), GL_DYNAMIC_DRAW);
+		//glBufferData(GL_ARRAY_BUFFER, Simulation::get_instance().particles.size() * sizeof(Particle), Simulation::get_instance().particles.data(), GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER,vertices.size() * sizeof(GLfloat), vertices.data(), GL_DYNAMIC_DRAW);
 
         // input
         processInput(window);
@@ -84,6 +82,7 @@ int Rendering::start(GLFWwindow* window) {
 
         
 
+        //glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
         glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
 
         glfwSwapBuffers(window);

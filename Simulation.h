@@ -30,5 +30,6 @@ public:
     float W(vec3 particle_i_pos, vec3 particle_j_pos);
 	float kernel_function(float r,float h);
     float calculate_density(Particle &particle);
+    float calculate_pressure_gradient(Particle &particle);
     void update_vertex_data(std::vector<GLfloat> *vertices);
 };

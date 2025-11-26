@@ -17,8 +17,20 @@ void Simulation::step(float delta_time){
         density_sum += particle_i.density;
     }
 
-    std::cout << "Density: " << density_sum/simulation_size << std::endl;
+    //std::cout << "Density: " << density_sum/simulation_size << std::endl;
 }
+float Simulation::calculate_pressure_gradient(Particle &particle_i){
+	float pressure_gradient = 0.0f;
+    for (auto& particle_j : particles) {
+        if (&particle_j != &particle_i) {
+			float contribution = W(particle_i.pos,particle_j.pos);
+			pressure_gradient += particle_j.mass * ((particle_i.density / particle_j.density)) * contribution;
+        }
+    }
+	return pressure_gradient;
+}
+
+
 //A Survey on SPH Methods in Computer Graphics Page 3: 2.4 Mass Density Estimation
 float Simulation::calculate_density(Particle &particle_i) {
     float density = 0.0f;

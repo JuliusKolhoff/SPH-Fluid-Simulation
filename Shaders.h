@@ -13,47 +13,19 @@ class Shader
 {
 public:
     GLuint ID;
-    
-    Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
+	bool useGeom = true;
+    Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
     {
-        
-        std::string vertexCode;
-        std::string fragmentCode;
-        std::string geometryCode;
-        
-        ReadSourceFiles(vertexPath, fragmentPath, geometryPath, vertexCode, fragmentCode, geometryCode);
-
-        const char* vShaderCode = vertexCode.c_str();
-        const char* fShaderCode = fragmentCode.c_str();
-        const char* gShaderCode = geometryCode.c_str();
-
-        unsigned int vertex, fragment, geometry;
-
-        // vertex shader
-        vertex = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex, 1, &vShaderCode, NULL);
-        glCompileShader(vertex);
-        checkCompileErrors(vertex, "VERTEX");
-        // fragment Shader
-        fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragment, 1, &fShaderCode, NULL);
-        glCompileShader(fragment);
-        checkCompileErrors(fragment, "FRAGMENT");
-        // geometry Shader
-        geometry = glCreateShader(GL_GEOMETRY_SHADER);
-        glShaderSource(geometry, 1, &gShaderCode, NULL);
-        glCompileShader(geometry);
-        checkCompileErrors(geometry, "GEOMETRY");
-
+        if (geometryPath == nullptr)
+        {
+            useGeom == false;
+        }
         ID = glCreateProgram();
-        glAttachShader(ID, vertex);
-        glAttachShader(ID, geometry);
-        glAttachShader(ID, fragment);
-        glLinkProgram(ID);
-        checkCompileErrors(ID, "PROGRAM");
-
-        glDeleteShader(vertex);
-        glDeleteShader(fragment);
+        ShaderFromFile(vertexPath,GL_VERTEX_SHADER);
+        ShaderFromFile(fragmentPath,GL_FRAGMENT_SHADER);
+        if (useGeom) {
+            ShaderFromFile(geometryPath,GL_GEOMETRY_SHADER);
+        }
     }
     void Use()
     {
@@ -138,6 +110,63 @@ private:
                 std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
             }
         }
+    }
+    void ShaderFromFile(const char* path,GLenum type) {
+        std::string code;
+        
+        ReadSourceFile(path, code);
+
+        const char* shaderCode = code.c_str();
+
+        std::string name = "UNKOWN_SHADER_TYPE";
+        switch (type) {
+        case GL_VERTEX_SHADER:
+            name = "VERTEX";
+            break;
+        case GL_FRAGMENT_SHADER:
+            name = "FRAGMENT";
+            break;
+        case GL_GEOMETRY_SHADER:
+            name = "GEOMETRY";
+            break;
+        }
+        
+        // vertex shader
+        unsigned int shader;
+        shader = glCreateShader(type);
+        glShaderSource(shader, 1, &shaderCode, NULL);
+        glCompileShader(shader);
+        checkCompileErrors(shader, name);
+
+        glAttachShader(ID, shader);
+        glLinkProgram(ID);
+        checkCompileErrors(ID, "PROGRAM");
+
+        glDeleteShader(shader);
+    }
+
+
+    int ReadSourceFile(const char* path,std::string &code) {
+        std::ifstream file;
+		file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        try
+        {
+            file.open(path);
+
+            std::stringstream stream;
+            stream << file.rdbuf();
+
+            file.close();
+
+            code = stream.str();
+        }
+        catch (std::ifstream::failure& e)
+        {
+            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+            return -1;
+        }
+        return 0;
+
     }
     int ReadSourceFiles(const char* vertexPath, const char* fragmentPath, const char* geometryPath,std::string &vertexCode,std::string &fragmentCode, std::string &geometryCode) {
         std::ifstream vShaderFile;

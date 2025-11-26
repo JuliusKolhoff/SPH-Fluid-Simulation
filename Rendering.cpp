@@ -57,7 +57,7 @@ int Rendering::start(GLFWwindow* window) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-		std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+		//std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
         
         //Simulation Step
         Simulation::get_instance().step(deltaTime);
@@ -79,8 +79,6 @@ int Rendering::start(GLFWwindow* window) {
 
         shader.Use();
         vao.Bind();
-
-        
 
         //glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
         glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);

@@ -2,11 +2,35 @@
 
 Simulation* Simulation::instance = nullptr;
 void Simulation::create_particles(){
+    //Movables
 	float distance_between_particles = 4 * particle_radius;
     for (unsigned int i = 0; i < simulation_size; i++) {
         float y = distance_between_particles * (0.5f * (int)sqrt(simulation_size) - (int)(i / (int)sqrt(simulation_size)));
         float x = distance_between_particles * (-0.5f * (int)sqrt(simulation_size) + (int)(i % (int)sqrt(simulation_size)));
         Particle particle = Particle(x, y, 0.0f, 1.0f, 1.0f, 1.0f);
+        particles.push_back(particle);
+    }
+    //Walls
+    for (unsigned int i = 0; i * particle_radius < 2; i+=4) {
+        float y = 1;
+        float x = i * particle_radius - 1;
+        Particle particle = Particle(x, y, 0.0f, 1.0f, 0.0f, 0.0f);
+        particle.movable = false;
+        particles.push_back(particle);
+        y = -1;
+        x = i * particle_radius - 1;
+        particle = Particle(x, y, 0.0f, 1.0f, 0.0f, 0.0f);
+        particle.movable = false;
+        particles.push_back(particle);
+        x = 1;
+        y = i * particle_radius - 1;
+        particle = Particle(x, y, 0.0f, 1.0f, 0.0f, 0.0f);
+        particle.movable = false;
+        particles.push_back(particle);
+        x = -1;
+        y = i * particle_radius - 1;
+        particle = Particle(x, y, 0.0f, 1.0f, 0.0f, 0.0f);
+        particle.movable = false;
         particles.push_back(particle);
     }
 }
@@ -15,16 +39,22 @@ void Simulation::step(float delta_time){
     for (auto& particle_i : particles) {
         calculate_density(particle_i);
         density_sum += particle_i.density;
+        if (particle_i.movable) {
+            particle_i.pos += (calculate_pressure_gradient(particle_i)-vec3(0.0f,0.1f,0.0f)) * 0.001f;
+        }
     }
 
     //std::cout << "Density: " << density_sum/simulation_size << std::endl;
 }
-float Simulation::calculate_pressure_gradient(Particle &particle_i){
-	float pressure_gradient = 0.0f;
-    for (auto& particle_j : particles) {
-        if (&particle_j != &particle_i) {
-			float contribution = W(particle_i.pos,particle_j.pos);
-			pressure_gradient += particle_j.mass * ((particle_i.density / particle_j.density)) * contribution;
+vec3 Simulation::calculate_pressure_gradient(Particle &particle_i){
+	vec3 pressure_gradient(0.0f);
+    if (particle_i.movable) {
+        for (auto& particle_j : particles) {
+            if (&particle_j != &particle_i) {
+                vec3 direction = normalize(particle_i.pos - particle_j.pos);
+                float contribution = W(particle_i.pos, particle_j.pos);
+                pressure_gradient += particle_j.mass * ((particle_i.density / particle_j.density)) * contribution * direction;
+            }
         }
     }
 	return pressure_gradient;

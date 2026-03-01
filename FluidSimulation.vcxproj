@@ -567,6 +567,7 @@
     <None Include="dependencies\include\glm\gtx\wrap.inl" />
     <None Include="FragmentShader.frag" />
     <None Include="GeometryShader.geom" />
+    <None Include="PrimitiveShader.frag" />
     <None Include="VertexShader.vert" />
   </ItemGroup>
   <ItemGroup>

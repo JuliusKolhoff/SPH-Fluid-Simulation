@@ -27,5 +27,4 @@ public:
 	void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	int createWindow(int width, int height, GLFWwindow*& window);
 	int start(GLFWwindow* window);
-	void render(Particle* particles,int size);
 };

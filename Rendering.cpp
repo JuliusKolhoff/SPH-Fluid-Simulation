@@ -8,6 +8,7 @@ float mouse_xpos = 0.0f;
 float mouse_ypos = 0.0f;
 
 std::vector<float> vertices;
+std::vector<float> primitive_vertices;
 //{
 //    //POS             //Color
 //    0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f
@@ -25,30 +26,42 @@ int Rendering::start(GLFWwindow* window) {
 
 	Simulation::get_instance().create_particles();
 
+    Shader primitive_shader("VertexShader.vert", "PrimitiveShader.frag");
+    VertexArrayObject primitive_vao;
+    BufferObject primitive_vbo(GL_ARRAY_BUFFER, primitive_vertices);
+
+    GLsizei stride = 3 * sizeof(GLfloat);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
+
+
     Shader shader("VertexShader.vert","FragmentShader.frag","GeometryShader.geom");
     shader.Use();
     shader.setVec2("u_resolution", (float)SCR_WIDTH, (float)SCR_HEIGHT);
     shader.setFloat("u_radius", Simulation::get_instance().particle_radius);
 
     VertexArrayObject vao;
-   
+    
     //BufferObject vbo(GL_ARRAY_BUFFER, Simulation::get_instance().particles);
     Simulation::get_instance().update_vertex_data(&vertices);
 
     BufferObject vbo(GL_ARRAY_BUFFER, vertices);
 
     //GLsizei stride = sizeof(Particle);
-	GLsizei stride = 6 * sizeof(GLfloat);
+    stride = 6 * sizeof(GLfloat);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3*sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
-
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    
     
 
     while (!glfwWindowShouldClose(window))
@@ -62,10 +75,14 @@ int Rendering::start(GLFWwindow* window) {
         //Simulation Step
         Simulation::get_instance().step(deltaTime);
 
+        //Clear Screen
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        /*----------------------------------------------------------Draw Patricles--------------------------------------------------------------------------*/
         //Update Vertex Data
         Simulation::get_instance().update_vertex_data(&vertices);
         
-
 		vbo.Bind();
 		//glBufferData(GL_ARRAY_BUFFER, Simulation::get_instance().particles.size() * sizeof(Particle), Simulation::get_instance().particles.data(), GL_DYNAMIC_DRAW);
 		glBufferData(GL_ARRAY_BUFFER,vertices.size() * sizeof(GLfloat), vertices.data(), GL_DYNAMIC_DRAW);
@@ -73,15 +90,33 @@ int Rendering::start(GLFWwindow* window) {
         // input
         processInput(window);
         shader.setVec2("u_mousePos", mouse_xpos, mouse_ypos);
-        // render
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        
         shader.Use();
         vao.Bind();
 
-        //glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
-        glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
+        glDrawArrays(GL_POINTS, 0, Simulation::get_instance().particles.size());
+
+        /*----------------------------------------------------------Draw Primitives--------------------------------------------------------------------------*/
+        primitive_vertices.clear();
+        for (auto& particle : Simulation::get_instance().particles) {
+            primitive_vertices.push_back(particle.pos.x);
+            primitive_vertices.push_back(particle.pos.y);
+            primitive_vertices.push_back(particle.pos.z);
+            vec3 gradient = Simulation::get_instance().calculate_pressure_gradient(particle);
+            gradient *= 0.01f;
+            primitive_vertices.push_back(particle.pos.x + gradient.x);
+            primitive_vertices.push_back(particle.pos.y + gradient.y);
+            primitive_vertices.push_back(particle.pos.z + gradient.z);
+        }
+
+
+        primitive_vbo.Bind();
+        glBufferData(GL_ARRAY_BUFFER, primitive_vertices.size() * sizeof(GLfloat), primitive_vertices.data(), GL_DYNAMIC_DRAW);
+
+        primitive_shader.Use();
+        primitive_vao.Bind();
+
+        glDrawArrays(GL_LINES, 0, primitive_vertices.size()/3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -94,16 +129,14 @@ int Rendering::start(GLFWwindow* window) {
     glfwTerminate();
     return 0;
 }
-void Rendering::render(Particle* particles, int size)
-{
 
-}
 void Rendering::processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {};
+    
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { Simulation::get_instance().step(deltaTime); };
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {};
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {};
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {};

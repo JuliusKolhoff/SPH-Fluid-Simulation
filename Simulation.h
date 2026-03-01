@@ -12,7 +12,7 @@ private:
     Simulation() {};
 public:
     const float particle_radius = 0.02f;
-    const unsigned int simulation_size = 250;
+    const unsigned int simulation_size = 100;
 	const float smoothing_radius = 1.0f;
     std::vector<Particle> particles;
 
@@ -30,6 +30,6 @@ public:
     float W(vec3 particle_i_pos, vec3 particle_j_pos);
 	float kernel_function(float r,float h);
     float calculate_density(Particle &particle);
-    float calculate_pressure_gradient(Particle &particle);
+    vec3 calculate_pressure_gradient(Particle &particle);
     void update_vertex_data(std::vector<GLfloat> *vertices);
 };

@@ -1328,6 +1328,7 @@
     <None Include="VertexShader.vert" />
     <None Include="FragmentShader.frag" />
     <None Include="GeometryShader.geom" />
+    <None Include="PrimitiveShader.frag" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dependencies\include\glm\detail\glm.cpp">

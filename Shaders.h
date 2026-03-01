@@ -18,7 +18,7 @@ public:
     {
         if (geometryPath == nullptr)
         {
-            useGeom == false;
+            useGeom = false;
         }
         ID = glCreateProgram();
         ShaderFromFile(vertexPath,GL_VERTEX_SHADER);

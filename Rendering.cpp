@@ -13,9 +13,8 @@ std::vector<float> primitive_vertices;
 //    //POS             //Color
 //    0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f
 //};
+bool run_simulation = false;
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 int Rendering::start(GLFWwindow* window) {
     glfwMakeContextCurrent(window);
@@ -24,9 +23,11 @@ int Rendering::start(GLFWwindow* window) {
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glEnable(GL_DEPTH_TEST);
 
-	Simulation::get_instance().create_particles();
+	Simulation::get_instance().random_particles();
 
     Shader primitive_shader("VertexShader.vert", "PrimitiveShader.frag");
+    primitive_shader.Use();
+    primitive_shader.setVec2("u_resolution", (float)SCR_WIDTH, (float)SCR_HEIGHT);
     VertexArrayObject primitive_vao;
     BufferObject primitive_vbo(GL_ARRAY_BUFFER, primitive_vertices);
 
@@ -73,7 +74,10 @@ int Rendering::start(GLFWwindow* window) {
 		//std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
         
         //Simulation Step
-        Simulation::get_instance().step(deltaTime);
+        if (run_simulation) {
+            Simulation::get_instance().step(deltaTime);
+
+        }
 
         //Clear Screen
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -102,11 +106,16 @@ int Rendering::start(GLFWwindow* window) {
             primitive_vertices.push_back(particle.pos.x);
             primitive_vertices.push_back(particle.pos.y);
             primitive_vertices.push_back(particle.pos.z);
-            vec3 gradient = Simulation::get_instance().calculate_pressure_gradient(particle);
-            gradient *= 0.01f;
-            primitive_vertices.push_back(particle.pos.x + gradient.x);
+            //if (particle.pos.z != 0) { print("AAAA"); }
+            //vec3 gradient = Simulation::get_instance().calculate_pressue_acceleration(particle) * 100.0f;
+            //print(gradient.x);
+            /*primitive_vertices.push_back(particle.pos.x + gradient.x);
             primitive_vertices.push_back(particle.pos.y + gradient.y);
-            primitive_vertices.push_back(particle.pos.z + gradient.z);
+            primitive_vertices.push_back(particle.pos.z + gradient.z);*/
+            primitive_vertices.push_back(particle.pos.x + particle.velocity.x);
+            primitive_vertices.push_back(particle.pos.y + particle.velocity.y);
+            primitive_vertices.push_back(particle.pos.z + particle.velocity.z);
+
         }
 
 
@@ -129,17 +138,30 @@ int Rendering::start(GLFWwindow* window) {
     glfwTerminate();
     return 0;
 }
-
+float cooldown;
 void Rendering::processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { Simulation::get_instance().step(deltaTime); };
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {};
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {};
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {};
+    cooldown--;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { Simulation::get_instance().k += 0.1f;};
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { Simulation::get_instance().k -= 0.1f; };
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { Simulation::get_instance().target_density += 0.1; };
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { Simulation::get_instance().target_density -= 0.1; };
+    if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS &&  cooldown <= 0) {
+        cooldown = 30;
+        run_simulation = !run_simulation;
+    };
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        Simulation::get_instance().simulation_size += 10;
+        Simulation::get_instance().create_particles();
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        Simulation::get_instance().simulation_size =
+            glm::max(10u, Simulation::get_instance().simulation_size - 10);
+        Simulation::get_instance().create_particles();
+    }
 }
 int Rendering::createWindow(int width,int height, GLFWwindow*& window) {
     glfwInit();
@@ -170,10 +192,21 @@ void Rendering::framebuffer_size_callback(GLFWwindow* window, int width, int hei
     glViewport(0, 0, width, height);
 }
 
+void Rendering::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        double x, y;
+        glfwGetCursorPos(window, &x, &y);
+        y = SCR_HEIGHT - y;
+        float density = Simulation::get_instance().sample_density(vec3(x, y, 0.0f));
+        print(density);
+    }
+}
+
 void Rendering::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
-    mouse_xpos = static_cast<float>(xposIn);
-    mouse_ypos = static_cast<float>(yposIn);
+    
     
    /* float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);

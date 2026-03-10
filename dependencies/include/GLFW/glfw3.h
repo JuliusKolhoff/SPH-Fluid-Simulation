@@ -4160,7 +4160,7 @@ GLFWAPI void glfwSetInputMode(GLFWwindow* window, int mode, int value);
  *  a system that does not support it, @ref GLFW_PLATFORM_ERROR will be emitted.
  *
  *  Raw mouse motion is closer to the actual motion of the mouse across
- *  a surface.  It is not affected by the scaling and acceleration applied to
+ *  a surface.  It is not affected by the scaling and velocity applied to
  *  the motion of the desktop cursor.  That processing is suitable for a cursor
  *  while raw motion is better for controlling for example a 3D camera.  Because
  *  of this, raw mouse motion is only provided when the cursor is disabled.

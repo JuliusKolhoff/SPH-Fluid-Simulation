@@ -37,7 +37,7 @@
 
       - decode from memory or through FILE (define STBI_NO_STDIO to remove code)
       - decode from arbitrary I/O callbacks
-      - SIMD acceleration on x86/x64 (SSE2) and ARM (NEON)
+      - SIMD velocity on x86/x64 (SSE2) and ARM (NEON)
 
    Full documentation under "DOCUMENTATION" below.
 
@@ -1931,7 +1931,7 @@ static stbi_uc *stbi__hdr_to_ldr(float   *data, int x, int y, int comp)
 
 #ifndef STBI_NO_JPEG
 
-// huffman decoding acceleration
+// huffman decoding velocity
 #define FAST_BITS   9  // larger handles more cases; smaller stomps less cache
 
 typedef struct
@@ -2029,7 +2029,7 @@ static int stbi__build_huffman(stbi__huffman *h, int *count)
    }
    h->maxcode[j] = 0xffffffff;
 
-   // build non-spec acceleration table; 255 is flag for not-accelerated
+   // build non-spec velocity table; 255 is flag for not-accelerated
    memset(h->fast, 255, 1 << FAST_BITS);
    for (i=0; i < k; ++i) {
       int s = h->size[i];

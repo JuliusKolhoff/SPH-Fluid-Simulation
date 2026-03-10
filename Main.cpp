@@ -7,6 +7,8 @@
 
 void mouse_callback(GLFWwindow * window, double xpos, double ypos);
 void scroll_callback(GLFWwindow * window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow * window, int button, int action, int mods);
+
 
 Rendering renderer;
 
@@ -17,8 +19,12 @@ int main() {
 	
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	renderer.start(window);
+}
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	renderer.mouse_button_callback(window, button, action, mods);
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	renderer.mouse_callback(window, xpos, ypos);

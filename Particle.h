@@ -6,11 +6,14 @@
 struct Particle {
 	glm::vec3 pos;
 	glm::vec3 color;
+	glm::vec3 velocity;
 	float mass = 1.0f;
 	float density = 1.0f;
+	float pressure = 0.0f;
 	bool movable = true;
 	Particle(float x, float y, float z, float r, float g, float b) {
 		pos = { x,y,z };
 		color = { r,g,b };
+		velocity = {0.0f,0.0f,0.0f};
 	}
 };

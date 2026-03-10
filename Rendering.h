@@ -14,8 +14,10 @@
 #include "Particle.h"
 #include "Simulation.h"
 
-static unsigned int SCR_WIDTH = 800;
-static unsigned int SCR_HEIGHT = 800;
+#define print(x) std::cout << x << std::endl
+
+static unsigned int SCR_WIDTH = 1800;
+static unsigned int SCR_HEIGHT = 1000;
 
 class Rendering
 {
@@ -25,6 +27,7 @@ private:
 public: 
 	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 	void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+	void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 	int createWindow(int width, int height, GLFWwindow*& window);
 	int start(GLFWwindow* window);
 };

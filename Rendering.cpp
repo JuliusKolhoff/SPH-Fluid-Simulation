@@ -98,20 +98,16 @@ int Rendering::start(GLFWwindow* window) {
         shader.Use();
         vao.Bind();
 
-        glDrawArrays(GL_POINTS, 0, Simulation::get_instance().particles.size());
+        glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
 
         /*----------------------------------------------------------Draw Primitives--------------------------------------------------------------------------*/
         primitive_vertices.clear();
-        for (auto& particle : Simulation::get_instance().particles) {
+        
+        for (int i = 0; i < Simulation::get_instance().simulation_size; i++) {
+            Particle& particle = Simulation::get_instance().particles[i];
             primitive_vertices.push_back(particle.pos.x);
             primitive_vertices.push_back(particle.pos.y);
             primitive_vertices.push_back(particle.pos.z);
-            //if (particle.pos.z != 0) { print("AAAA"); }
-            //vec3 gradient = Simulation::get_instance().calculate_pressue_acceleration(particle) * 100.0f;
-            //print(gradient.x);
-            /*primitive_vertices.push_back(particle.pos.x + gradient.x);
-            primitive_vertices.push_back(particle.pos.y + gradient.y);
-            primitive_vertices.push_back(particle.pos.z + gradient.z);*/
             primitive_vertices.push_back(particle.pos.x + particle.velocity.x);
             primitive_vertices.push_back(particle.pos.y + particle.velocity.y);
             primitive_vertices.push_back(particle.pos.z + particle.velocity.z);

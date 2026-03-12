@@ -14,7 +14,7 @@
 #include "Particle.h"
 #include "Simulation.h"
 
-#define print(x) std::cout << x << std::endl
+#define println(x) std::cout << x << std::endl
 
 static unsigned int SCR_WIDTH = 1800;
 static unsigned int SCR_HEIGHT = 1000;

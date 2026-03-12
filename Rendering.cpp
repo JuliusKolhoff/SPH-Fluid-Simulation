@@ -23,7 +23,7 @@ int Rendering::start(GLFWwindow* window) {
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glEnable(GL_DEPTH_TEST);
 
-	Simulation::get_instance().random_particles();
+	Simulation::get_instance().create_particles();
 
     Shader primitive_shader("VertexShader.vert", "PrimitiveShader.frag");
     primitive_shader.Use();
@@ -101,7 +101,7 @@ int Rendering::start(GLFWwindow* window) {
         glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
 
         /*----------------------------------------------------------Draw Primitives--------------------------------------------------------------------------*/
-        primitive_vertices.clear();
+        /*primitive_vertices.clear();
         
         for (int i = 0; i < Simulation::get_instance().simulation_size; i++) {
             Particle& particle = Simulation::get_instance().particles[i];
@@ -121,7 +121,7 @@ int Rendering::start(GLFWwindow* window) {
         primitive_shader.Use();
         primitive_vao.Bind();
 
-        glDrawArrays(GL_LINES, 0, primitive_vertices.size()/3);
+        glDrawArrays(GL_LINES, 0, primitive_vertices.size()/3);*/
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -149,7 +149,7 @@ void Rendering::processInput(GLFWwindow* window)
         cooldown = 30;
         run_simulation = !run_simulation;
     };
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+    /*if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
         Simulation::get_instance().simulation_size += 10;
         Simulation::get_instance().create_particles();
     }
@@ -157,7 +157,7 @@ void Rendering::processInput(GLFWwindow* window)
         Simulation::get_instance().simulation_size =
             glm::max(10u, Simulation::get_instance().simulation_size - 10);
         Simulation::get_instance().create_particles();
-    }
+    }*/
 }
 int Rendering::createWindow(int width,int height, GLFWwindow*& window) {
     glfwInit();
@@ -195,8 +195,7 @@ void Rendering::mouse_button_callback(GLFWwindow* window, int button, int action
         double x, y;
         glfwGetCursorPos(window, &x, &y);
         y = SCR_HEIGHT - y;
-        float density = Simulation::get_instance().sample_density(vec3(x, y, 0.0f));
-        print(density);
+        Simulation::get_instance().sample_at_point(vec3(x, y, 0.0f));
     }
 }
 

@@ -2,54 +2,46 @@
 
 Simulation* Simulation::instance = nullptr;
 
-void Simulation::step(float delta_time){
+void Simulation::step(float delta_time) {
     //step_size = delta_time;
-    delta_time = max(delta_time, 0.016f);
+    //step_size = min(delta_time, 0.016f);
+
     update_spacial_lookup();
-
-    
-            Particle& p = particles[20];
-            std::function<int(Particle&)> func = [this, p](Particle& particle_j) {
-                particle_j.color = { 1.0,0,0 };
-                return 0;
-            };
-            int x = do_for_each_neighbour<int>(p.pos, func);
-            
-   
-    
-
+    error_sum = 0;
+    density_sum = 0;
 
     // 1 Density
-    for (int i = 0;i<simulation_size;++i) {
+    for (int i = 0; i < simulation_size; ++i) {
         Particle& p = particles[i];
         calculate_density(p);
-        float ratio = p.density / target_density;
-        p.color = vec3(ratio, 0.2f, 1.0f - ratio);
-        
+        /*float ratio = p.density / target_density;
+        p.color = vec3(ratio, 0.2f, 1.0f - ratio);*/
+        density_sum += p.density;
     }
-        for (int i = 0;i<simulation_size;++i) {
-            Particle& p = particles[i];
-            if (p.movable) {
-                // Berechne Druck basierend auf Dichte-Fehler
-                p.pressure = calculate_pressure(p);
+    //2 Pressure
+    for (int i = 0; i < simulation_size; ++i) {
+        Particle& p = particles[i];
+        if (p.movable) {
+            // Berechne Druck basierend auf Dichte-Fehler
+            p.pressure = calculate_pressure(p);
 
-            }
         }
+    }
 
-    //// 3 Forces
-    for (int i = 0;i<simulation_size;++i)
+    // 3 Forces
+    for (int i = 0; i < simulation_size; ++i)
     {
         Particle& p = particles[i];
         if (p.movable) {
-            vec3 accel = calculate_pressue_acceleration(p);
-            //accel += vec3(0, -0.5f * k, 0);    // gravity
-            p.velocity += accel * step_size;
+            vec2 accel = calculate_pressue_acceleration(p);
+            p.velocity += vec3(0, -4,0);    // gravity
+            p.velocity += vec3(accel, 0.0f) * step_size;
             p.velocity *= 0.99f;
         }
     }
 
     //// 4 Integrate
-    for (int i = 0;i<simulation_size;++i)
+    for (int i = 0; i < simulation_size; ++i)
     {
         Particle& p = particles[i];
         if (p.movable)
@@ -58,15 +50,13 @@ void Simulation::step(float delta_time){
             handle_collisions(p);
         }
     }
-    
+
     //std::cout << "Density: " << density_sum/simulation_size << std::endl;
 }
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.1. Measuring Compression
 float Simulation::calculate_pressure(Particle& particle_i) {
     float  pressure = particle_i.density - (*instance).target_density;
     return k * max(0.0f,pressure);
-    
-
 }
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers  /  Page 4 Eqation(12)
 //vec3 Simulation::calculate_pressure_gradient(Particle &particle_i){
@@ -85,9 +75,8 @@ float Simulation::calculate_pressure(Particle& particle_i) {
 //}
 // 
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers  /  Page 4 Eqation(12)
-vec3 Simulation::calculate_pressure_gradient(Particle &particle_i){
+vec2 Simulation::calculate_pressure_gradient(Particle &particle_i){
 	vec2 pressure_gradient(0.0f);
-    float error = 0;
     if (particle_i.movable) {
         //for (auto& particle_j : particles) {
         //    if (&particle_j != &particle_i) {
@@ -100,20 +89,23 @@ vec3 Simulation::calculate_pressure_gradient(Particle &particle_i){
         //}
         std::function<vec3(Particle&)> func = [this, particle_i](Particle& particle_j) {
             if (particle_i.pos == particle_j.pos) return vec3(0);
-            vec3 direction = normalize(particle_i.pos - particle_j.pos);
+            vec2 direction = normalize(particle_i.pos - particle_j.pos);
             float contribution = W1(particle_i.pos, particle_j.pos);
-            return particle_j.mass * ((particle_i.pressure / (particle_i.density * particle_i.density)) + (particle_j.pressure / (particle_j.density * particle_j.density))) * contribution * direction;
+            vec2 acceleration = particle_j.mass * ((particle_i.pressure / (particle_i.density * particle_i.density)) + (particle_j.pressure / (particle_j.density * particle_j.density))) * contribution * direction;
+            float error = particle_j.mass * ((1 / (particle_i.density * particle_i.density)) + (1 / (particle_j.density * particle_j.density))) * contribution;
+            return vec3(acceleration.x,acceleration.y, error);
            };
-        pressure_gradient = do_for_each_neighbour<vec3>(particle_i.pos, func);
+        vec3 result = do_for_each_neighbour<vec3>(particle_i.pos, func);
+        error_sum += result.z;
+        pressure_gradient = vec2(result.x, result.y);
     }
-    //print(error);
-	return vec3(pressure_gradient,0.0f);
+	return vec2(pressure_gradient);
 }
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers
-vec3 Simulation::calculate_pressue_acceleration(Particle& particle_i) {
-    vec3 pressure_gradient = calculate_pressure_gradient(particle_i);
+vec2 Simulation::calculate_pressue_acceleration(Particle& particle_i) {
+    vec2 pressure_gradient = calculate_pressure_gradient(particle_i);
     if (all(isnan((pressure_gradient)))) {
-        pressure_gradient = vec3(0);
+        pressure_gradient = vec2(0);
     }
     return -pressure_gradient;
 }
@@ -131,6 +123,7 @@ float Simulation::calculate_density(Particle& particle_i) {
         density += particle_j.mass * d;
     }*/
     particle_i.density = density;
+    //particle_i.color = { 1.0,1.0,1.0 };
     return density;
 }
 //Kernel function W between two particles
@@ -138,13 +131,18 @@ float Simulation::W(vec3 particle_i_pos, vec3 particle_j_pos) {
 	//return kernel_function(distance(particle_i_pos ,particle_j_pos) * 3, smoothing_radius);
     //Smoothing radius from 0 to 1 but distance in screen space -> /100 to account for difference
     float dist = distance(particle_i_pos, particle_j_pos)/100;
-	return kernel_function(dist, smoothing_radius);
+	//return kernel_function(dist, smoothing_radius);
+    //Lague
+    return smoothing_kernel(dist, smoothing_radius);
+
 }
 float Simulation::W1(vec3 particle_i_pos, vec3 particle_j_pos) {
     //Smoothing radius from 0 to 1 but distance in screen space -> /100 to account for difference
     float dist = distance(particle_i_pos, particle_j_pos)/100;
-    return kernel_function_derivative(dist, smoothing_radius);
-    
+    //return kernel_function_derivative(dist, smoothing_radius);
+    //Lague
+    return smoothing_kernel_derivative(dist, smoothing_radius);
+
 }
 
 //Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments Page 12
@@ -188,8 +186,24 @@ float Simulation::kernel_function_derivative(float r, float h)
 
     return value;
 }
-
-
+float Simulation::smoothing_kernel(float  dist, float radius) {
+    float volume = M_PI * pow(radius, 8) / 4;
+    float value = max(0.0f, radius * radius - dist * dist);
+    /*if (dist < 0.2) {
+        return value * value * value / volume * 2;
+    }*/
+    return value * value * value / volume;
+}
+float Simulation::smoothing_kernel_derivative(float  dist, float radius) {
+    if (dist > radius) return 0;
+    float f = radius * radius -dist * dist;
+    float scale = -24 / (M_PI * pow(radius, 8));
+    //*2  für wenn nahe kein zusammenfallen
+    if (dist < 0.3) {
+        return scale * dist * f * f * 2;
+    }
+    return scale * dist * f * f;
+}
 void Simulation::update_vertex_data(std::vector<GLfloat> *vertices) {
     vertices->clear();
     for (int i = 0; i < simulation_size;i++) {
@@ -203,25 +217,11 @@ void Simulation::update_vertex_data(std::vector<GLfloat> *vertices) {
     }
 }
 
-float Simulation::sample_density(vec3 pos) {
-    float density = 0;
-    /*for (auto& particle_j : particles) {
-            float d = W(pos, particle_j.pos);
-            if (d > 0)  particle_j.color = vec3(1, 0, 0); else particle_j.color = vec3(1,1,1);
-            density += particle_j.mass * d;
-    }*/
-    std::function<int(Particle&)> func = [this](Particle& particle_j) {
-        particle_j.color = { 0,1.0,0.0 };
-        return 0;
-        };
-    int x = do_for_each_neighbour<int>(pos, func);
-    return density;
-}
 
 void Simulation::handle_collisions(Particle& particle)
 {
     
-    float collisionDamping = 0.85f;
+    float collisionDamping = 0.95f;
 
     vec3 pos = particle.pos;
     vec3 vel = particle.velocity;
@@ -410,4 +410,47 @@ void Simulation::create_walls() {
         particle.movable = false;
         particles.push_back(particle);*/
     }
+}
+void Simulation::sample_at_point(vec3 pos) {
+    //float density = 0;
+    /*for (auto& particle_j : particles) {
+            float d = W(pos, particle_j.pos);
+            if (d > 0)  particle_j.color = vec3(1, 0, 0); else particle_j.color = vec3(1,1,1);
+            density += particle_j.mass * d;
+    }*/
+    /*std::function<float(Particle&)> func = [this, &pos](Particle& particle_j) {
+        particle_j.color = {0,1.0,0.0 };
+        float d = this->W(pos, particle_j.pos);
+        return particle_j.mass * d;
+        };*/
+   /* std::function<float(Particle&)> func = [this, &pos](Particle& p2) {p2.color = { 0,1.0,0.0 }; if (distance(pos, p2.pos) < 6.0f) { return 1; } else return 0; };
+    density = do_for_each_neighbour<float>(pos, func);
+    return density;*/
+    sample_point = pos;
+    print_debug_info();
+
+}
+void Simulation::print_debug_info() {
+    println("-----------------Debug-----------------");
+    //Count Duplicates
+    float duplicates = 0;
+    for (int i = 0; i < simulation_size; ++i) {
+        Particle& p = particles[i];
+        std::function<float(Particle&)> func = [this, &p](Particle& p2) {if (&p != &p2 && distance(p.pos, p2.pos) < 6.0f) { return 1; } else return 0; };
+        duplicates += do_for_each_neighbour<float>(p.pos, func);
+    }
+    println("Duplicates: " << duplicates / 2);
+    //Avg Error
+    println("Avg. Error: "  << error_sum / simulation_size);
+    //Avg Density
+    println("Avg. Density: "  << density_sum / simulation_size);
+    
+    println("");
+    
+    //Sample
+    std::function<float(Particle&)> func = [this](Particle& p2) {float d = this->W(sample_point, p2.pos); return p2.mass * d; };
+    float density = do_for_each_neighbour<float>(sample_point, func);
+    println("Sample Density: " << density);
+
+    println("---------------------------------------");
 }

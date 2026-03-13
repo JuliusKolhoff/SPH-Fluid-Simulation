@@ -127,7 +127,7 @@ int Rendering::start(GLFWwindow* window) {
         glfwPollEvents();
     }
 
-    
+    delete &Simulation::get_instance();
 
     glfwDestroyWindow(window);
 

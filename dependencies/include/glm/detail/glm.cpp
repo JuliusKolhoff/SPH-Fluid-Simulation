@@ -81,7 +81,7 @@ template struct vec<2, int64, highp>;
 template struct vec<2, float32, highp>;
 template struct vec<2, float64, highp>;
 
-// tvec3 type explicit instantiation
+// tvec2 type explicit instantiation
 template struct vec<3, uint8, lowp>;
 template struct vec<3, uint16, lowp>;
 template struct vec<3, uint32, lowp>;

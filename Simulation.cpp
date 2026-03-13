@@ -62,6 +62,7 @@ void Simulation::step(float delta_time) {
 
     //std::cout << "Density: " << density_sum/simulation_size << std::endl;
 }
+
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.1. Measuring Compression
 float Simulation::calculate_pressure(Particle& particle_i) {
     /*float  pressure = particle_i.density - (*instance).target_density;
@@ -69,37 +70,22 @@ float Simulation::calculate_pressure(Particle& particle_i) {
     float  pressure = particle_i.density / (*instance).target_density;
     return max(0.0f, k * (powf(pressure, 7.0f) - 1.0f));
 }
+
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers  /  Page 4 Eqation(12)
-//vec3 Simulation::calculate_pressure_gradient(Particle &particle_i){
-//	vec3 pressure_gradient(0.0f);
-//    if (particle_i.movable) {
-//        for (auto& particle_j : particles) {
-//            if (&particle_j != &particle_i) {
-//                vec3 direction = normalize(particle_i.pos - particle_j.pos);
-//                float contribution = W1(particle_i.pos, particle_j.pos);
-//                pressure_gradient += particle_j.mass * ((particle_i.density / particle_j.density)) * contribution * direction;
-//            }
-//        }
-//    }
-//    print(pressure_gradient.x);
-//	return -pressure_gradient;
-//}
-// 
-//A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers  /  Page 4 Eqation(12)
-vec2 Simulation::calculate_pressure_gradient(Particle &particle_i){
-	vec2 pressure_gradient(0.0f);
+vec2 Simulation::calculate_pressure_gradient(Particle& particle_i) {
+    vec2 pressure_gradient(0.0f);
     if (particle_i.movable) {
         vec3 result = do_for_each_neighbour<vec3>(particle_i, &Simulation::calculate_pressure_contribution);
         error_sum += result.z;
         pressure_gradient = vec2(result.x, result.y);
     }
-	return vec2(pressure_gradient);
+    return vec2(pressure_gradient);
 }
-vec3 Simulation::calculate_pressure_contribution(Particle& particle_i,Particle& particle_j) {
+vec3 Simulation::calculate_pressure_contribution(Particle& particle_i, Particle& particle_j) {
     float r = distance(vec2(particle_i.pos), vec2(particle_j.pos));
     if (r < 1e-6f) return vec3(0);
-    vec2 direction = (vec2(particle_i.pos) - vec2(particle_j.pos))/r;
-    float contribution = W1(particle_i.pos, particle_j.pos);
+    vec2 direction = (vec2(particle_i.pos) - vec2(particle_j.pos)) / r;
+    float contribution = kernel_manager.W1_pressure(r/100.0f,smoothing_radius);
     vec2 acceleration = particle_j.mass * ((particle_i.pressure / (particle_i.density * particle_i.density)) + (particle_j.pressure / (particle_j.density * particle_j.density))) * contribution * direction;
     float error = particle_j.mass * ((1 / (particle_i.density * particle_i.density)) + (1 / (particle_j.density * particle_j.density))) * contribution;
     return vec3(acceleration.x, acceleration.y, error);
@@ -135,7 +121,7 @@ vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle
     // Kernel gradient in screen-space (same convention as the pressure gradient):
     //   grad_W = W'(r/100, h_norm) * (x_ij / r)
     // W1 already returns the scalar derivative evaluated at the normalised distance.
-    float W1_val = smoothing_kernel_derivative(r/100.0f,smoothing_radius);
+    float W1_val = kernel_manager.W1_viscosity(r/100.0f,smoothing_radius);
     vec3  grad_W = W1_val * (x_ij / r);
 
     float dot_vx = dot(v_ij, x_ij);
@@ -143,9 +129,6 @@ vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle
 
     return (particle_j.mass / particle_j.density) * (dot_vx / denom) * grad_W;
     
-    /*float contribution = W2(particle_i.pos, particle_j.pos);
-    vec3 vel_diff = particle_j.velocity - particle_i.velocity;
-    return (particle_j.mass / particle_j.density) * vel_diff * contribution;*/
 }
 
 
@@ -157,118 +140,17 @@ float Simulation::calculate_density(Particle& particle_i) {
 }
 
 float Simulation::sample_density_contribution(Particle& particle_j) {
-    float d = W(sample_point, particle_j.pos);
+    float dist = distance(sample_point, particle_j.pos);
+    float d = kernel_manager.W_density(dist / 100.0f, smoothing_radius);
     return particle_j.mass * d;
 }
 
 float Simulation::calculate_density_contribution(Particle& particle_i, Particle& particle_j) {
-    float d = W(particle_i.pos, particle_j.pos);
+    float dist = distance(particle_i.pos, particle_j.pos);
+    float d = kernel_manager.W_density(dist/100.0f,smoothing_radius);
     return particle_j.mass * d;
 }
-//Kernel function W between two particles
-float Simulation::W(vec3 particle_i_pos, vec3 particle_j_pos) {
-	//return kernel_function(distance(particle_i_pos ,particle_j_pos) * 3, smoothing_radius);
-    //Smoothing radius from 0 to 1 but distance in screen space -> /100 to account for difference
-    float dist = distance(particle_i_pos, particle_j_pos)/100;
-	//return kernel_function(dist, smoothing_radius);
-    //Lague
-    return smoothing_kernel(dist, smoothing_radius);
 
-}
-float Simulation::W1(vec3 particle_i_pos, vec3 particle_j_pos) {
-    //Smoothing radius from 0 to 1 but distance in screen space -> /100 to account for difference
-    float dist = distance(particle_i_pos, particle_j_pos)/100.0f;
-    //return kernel_function_derivative(dist, smoothing_radius);
-    //Lague
-    //return smoothing_kernel_derivative(dist, smoothing_radius);
-    return spiky_kernel_derivative(dist, smoothing_radius);
-
-}
-float Simulation::W2(vec3 particle_i_pos, vec3 particle_j_pos) {
-    //Smoothing radius from 0 to 1 but distance in screen space -> /100 to account for difference
-    float dist = distance(particle_i_pos, particle_j_pos) / 100;
-    //return kernel_function_derivative(dist, smoothing_radius);
-    //Lague
-    return smoothing_kernel_derivative_2(dist, smoothing_radius);
-
-}
-
-//Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments Page 12
-float Simulation::kernel_function(float r,float h) {
-    
-	float R = (r / h);
-
-    if (R > 2.0f) {
-		return 0.0f;
-    }
-    //3D
-	//float normal = (315.0f / 208.0f )*(PI * h * h * h);
-    //2D
-	float normal = 15.0f / (7.0f * M_PI * h  * h);
-
-    float r_2 = R * R;
-	float r_3 = r_2 * R;
-	float r_4 = r_3 * R;
-    float value = normal * ((2.0f / 3.0f) - (9.0f / 8.0f) * r_2 + (19.0f / 24.0f) * r_3 - (5.0f / 32.0f) * r_4);
-    if (value < 0) value = 0;
-    return value;
-}
-float Simulation::kernel_function_derivative(float r, float h)
-{
-    float R = r / h;
-
-    if (R > 2.0f) {
-        return 0.0f;
-    }
-
-    // 2D normalization
-    float normal = 15.0f / (7.0f * M_PI * h * h);
-
-    float r2 = R * R;
-    float r3 = r2 * R;
-
-    float value = (normal / (h*h)) *
-        (-(9.0f / 4.0f) * R +
-            (19.0f / 8.0f) * r2 -
-            (5.0f / 8.0f) * r3);
-
-    return value;
-}
-float Simulation::smoothing_kernel(float  dist, float radius) {
-    if (dist > radius) return 0;
-    float volume = M_PI * pow(radius, 8) / 4;
-    float value = max(0.0f, radius * radius - dist * dist);
-    return value * value * value / volume;
-}
-float Simulation::smoothing_kernel_derivative(float  dist, float radius) {
-    if (dist > radius) return 0;
-    float f = radius * radius -dist * dist;
-    float scale = -24 / (M_PI * pow(radius, 8));
-    return scale * dist * f * f;
-}
-float Simulation::smoothing_kernel_derivative_2(float  dist, float radius) {
-    if (dist > radius) return 0.0f;
-
-    float h2 = radius * radius;
-    float f = h2 - dist * dist;
-
-    float scale = -24.0f / (M_PI * pow(radius, 8));
-
-    return scale * f * (h2 - 5.0f * dist * dist);
-}
-float Simulation::spiky_kernel(float dist, float radius) {
-    if (dist > radius) return 0.0f;
-    float h_r = radius - dist;
-    float volume = M_PI * pow(radius, 5) / 10.0f;  // from 2-D normalisation above
-    return (h_r * h_r * h_r) / volume;
-}
-
-float Simulation::spiky_kernel_derivative(float dist, float radius) {
-    if (dist > radius) return 0.0f;
-    float h_r = radius - dist;
-    float scale = 30.0f / (M_PI * pow(radius, 5));
-    return -scale * h_r * h_r;  // always ≤ 0, non-zero for r < h
-}
 void Simulation::update_vertex_data(std::vector<GLfloat> *vertices) {
     vertices->clear();
     for (int i = 0; i < simulation_size;i++) {
@@ -281,7 +163,6 @@ void Simulation::update_vertex_data(std::vector<GLfloat> *vertices) {
         //std::cout << "Particle Position: (" << particle.pos.x << ", " << particle.pos.y << ", " << particle.pos.z << ")\n";
     }
 }
-
 
 void Simulation::handle_collisions(Particle& particle)
 {
@@ -383,6 +264,7 @@ int Simulation::KeyFromHash(int hash, int tableSize)
     if (hash < 0) return -1;
     return hash % tableSize;
 }
+//R for Return  O for object to call on
 template <typename R> 
 R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(Particle&, Particle&)) {
         // Find which cell the sample point is in (this will be the centre of our 3x3 block)
@@ -403,16 +285,13 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
 
                 int particleIndex = spatial_lookup[i].first;
                 Particle& particle_j = particles[particleIndex];
-                    //float sqrDst = glm::length2(points[particleIndex] - samplePoint);
+                /*float sqrDst = glm::length2(points[particleIndex] - samplePoint);
 
-                    //// Test if the point is inside the radius
-                    //if (sqrDst <= sqrRadius)
-                    //{
-                    //    // Do something with the particleIndex!
-                    //    // (either by writing code here that uses it directly, or more likely by
-                    //    // having this function take in a callback, or return a vector, etc.)
-                    //}
-                result += (this->*func)(particle_i,particle_j);
+                if (sqrDst <= sqrRadius)
+                {*/
+                    result += (this->*func)(particle_i, particle_j);
+                //}
+
             }
         }
         return result;
@@ -478,30 +357,26 @@ void Simulation::create_walls() {
     }
 }
 void Simulation::sample_at_point(vec3 pos) {
-    //float density = 0;
-    /*for (auto& particle_j : particles) {
-            float d = W(pos, particle_j.pos);
-            if (d > 0)  particle_j.color = vec3(1, 0, 0); else particle_j.color = vec3(1,1,1);
-            density += particle_j.mass * d;
-    }*/
-    /*std::function<float(Particle&)> func = [this, &pos](Particle& particle_j) {
-        particle_j.color = {0,1.0,0.0 };
-        float d = this->W(pos, particle_j.pos);
-        return particle_j.mass * d;
-        };*/
-   /* std::function<float(Particle&)> func = [this, &pos](Particle& p2) {p2.color = { 0,1.0,0.0 }; if (distance(pos, p2.pos) < 6.0f) { return 1; } else return 0; };
-    density = do_for_each_neighbour<float>(pos, func);
-    return density;*/
     sample_point = pos;
     print_debug_info();
 
 }
 void Simulation::print_debug_info() {
     println("-----------------Debug-----------------");
+
+    //Avg Error
+    println("Avg. Error: " << error_sum / simulation_size);
+    //Avg Density
+    println("Avg. Density: " << density_sum / simulation_size);
+
+    println("");
+
+    //Sample
     //Count Duplicates
     float duplicates = 0;
     for (int i = 0; i < simulation_size; ++i) {
         Particle& p = particles[i];
+        p.color = { 1,1,1 };
         glm::vec<2, int> centre = get_cell_coord(p.pos);
         for (glm::vec<2, int> offset : cell_offsets) {
             int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
@@ -515,26 +390,20 @@ void Simulation::print_debug_info() {
         }
     }
     println("Duplicates: " << duplicates / 2);
-    //Avg Error
-    println("Avg. Error: "  << error_sum / simulation_size);
-    //Avg Density
-    println("Avg. Density: "  << density_sum / simulation_size);
-    
-    println("");
-    
-    //Sample
+
     float density = 0;
-        glm::vec<2, int> centre = get_cell_coord(vec2(sample_point));
-        for (glm::vec<2, int> offset : cell_offsets) {
-            int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
-            if (key == -1) continue;
-            int start = start_indices[key];
-            for (int s = start; s < simulation_size; ++s) {
-                if (spatial_lookup[s].second != key) break;
-                Particle& p2 = particles[spatial_lookup[s].first];
-                density += sample_density_contribution(p2);
-            }
+    glm::vec<2, int> centre = get_cell_coord(vec2(sample_point));
+    for (glm::vec<2, int> offset : cell_offsets) {
+        int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
+        if (key == -1) continue;
+        int start = start_indices[key];
+        for (int s = start; s < simulation_size; ++s) {
+            if (spatial_lookup[s].second != key) break;
+            Particle& p2 = particles[spatial_lookup[s].first];
+            p2.color = { 0,1,0 };
+            density += sample_density_contribution(p2);
         }
+    }
     println("Sample Density: " << density);
 
     println("---------------------------------------");

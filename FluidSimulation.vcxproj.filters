@@ -909,6 +909,12 @@
     <ClInclude Include="Simulation.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="Kernels.cpp">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Kernels.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="dependencies\include\glm\detail\func_common.inl">
@@ -1347,9 +1353,6 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="Simulation.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="Particle.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

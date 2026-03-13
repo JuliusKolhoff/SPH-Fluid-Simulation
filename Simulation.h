@@ -5,6 +5,8 @@
 #include <random>
 #include "Rendering.h"
 #include "Particle.h"
+#include "Kernels.h"
+
 #include <functional>
 
 using namespace glm;
@@ -24,6 +26,11 @@ public:
     float viscosity = 15;
     float gravity = 60.0f;
 
+    
+
+    //Manager
+    KernelManager kernel_manager;
+
     //Spatial Hash
     Particle *particles = nullptr;
     std::pair<int, int> *spatial_lookup = nullptr;
@@ -33,11 +40,11 @@ private:
     //debug
     float error_sum = 0;
     float density_sum = 0;
-    vec3 sample_point  = vec3(0);
-
+    vec3 sample_point = vec3(0);
 
     static Simulation* instance;
-    Simulation() {
+
+    Simulation(){
         particles = new Particle[simulation_size];
         spatial_lookup = new std::pair<int, int>[simulation_size];
         start_indices = new int[simulation_size];
@@ -69,23 +76,13 @@ public:
     void create_particles();
     void random_particles();
 	void step(float delta_time);
-    float W(vec3 particle_i_pos, vec3 particle_j_pos);
-    float W1(vec3 particle_i_pos, vec3 particle_j_pos);
-    float W2(vec3 particle_i_pos, vec3 particle_j_pos);
-	float kernel_function(float r,float h);
-    float kernel_function_derivative(float r, float h);
-    float smoothing_kernel(float dist, float radius);
-    float smoothing_kernel_derivative(float dist, float radius);
-    float smoothing_kernel_derivative_2(float dist, float radius);
-    float spiky_kernel(float dist, float radius);
-    float spiky_kernel_derivative(float dist, float radius);
     float calculate_density(Particle &particle);
     float sample_density_contribution(Particle& particle_j);
     float calculate_density_contribution(Particle& particle_i, Particle& particle_j);
     void sample_at_point(vec3 pos);
+    void update_vertex_data(std::vector<GLfloat> *vertices);
     vec2 calculate_pressure_gradient(Particle &particle);
     vec3 calculate_pressure_contribution(Particle& particle_i, Particle& particle_j);
-    void update_vertex_data(std::vector<GLfloat> *vertices);
     float calculate_pressure(Particle& particle);
     vec2 calculate_pressue_acceleration(Particle& particle);
     vec3 calculate_viscosity_force(Particle& particle_i);

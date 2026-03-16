@@ -9,7 +9,7 @@ void Simulation::step(float delta_time) {
         v_max = max(v_max, length(vec2(particles[i].velocity)));
 
     const float lambda = 0.4f;
-    const float h_px = smoothing_radius * 100.0f;   // kernel radius in screen px
+    const float h_px = smoothing_radius;   // kernel radius in screen px
     step_size = lambda * h_px / v_max;
     step_size = min(step_size, 0.016f);
 
@@ -18,13 +18,17 @@ void Simulation::step(float delta_time) {
     density_sum = 0;
 
     // 1 Density
+    float sum = 0;
+#pragma omp parallel for reduction(+:sum) schedule(dynamic, 32)
     for (int i = 0; i < simulation_size; ++i) {
         Particle& p = particles[i];
         calculate_density(p);
         /*float ratio = p.density / target_density;
         p.color = vec3(ratio, 0.2f, 1.0f - ratio);*/
-        density_sum += p.density;
+        sum += p.density;
     }
+    density_sum = sum;
+#pragma omp parallel for schedule(static)
     //2 Pressure
     for (int i = 0; i < simulation_size; ++i) {
         Particle& p = particles[i];
@@ -34,7 +38,7 @@ void Simulation::step(float delta_time) {
 
         }
     }
-
+#pragma omp parallel for schedule(dynamic, 32)
     // 3 Forces
     for (int i = 0; i < simulation_size; ++i)
     {
@@ -49,6 +53,7 @@ void Simulation::step(float delta_time) {
         }
     }
 
+#pragma omp parallel for schedule(static)
     //// 4 Integrate
     for (int i = 0; i < simulation_size; ++i)
     {
@@ -76,7 +81,7 @@ vec2 Simulation::calculate_pressure_gradient(Particle& particle_i) {
     vec2 pressure_gradient(0.0f);
     if (particle_i.movable) {
         vec3 result = do_for_each_neighbour<vec3>(particle_i, &Simulation::calculate_pressure_contribution);
-        error_sum += result.z;
+        //error_sum += result.z;
         pressure_gradient = vec2(result.x, result.y);
     }
     return vec2(pressure_gradient);
@@ -85,7 +90,7 @@ vec3 Simulation::calculate_pressure_contribution(Particle& particle_i, Particle&
     float r = distance(vec2(particle_i.pos), vec2(particle_j.pos));
     if (r < 1e-6f) return vec3(0);
     vec2 direction = (vec2(particle_i.pos) - vec2(particle_j.pos)) / r;
-    float contribution = kernel_manager.W1_pressure(r/100.0f,smoothing_radius);
+    float contribution = kernel_manager.W1_pressure(r,smoothing_radius);
     vec2 acceleration = particle_j.mass * ((particle_i.pressure / (particle_i.density * particle_i.density)) + (particle_j.pressure / (particle_j.density * particle_j.density))) * contribution * direction;
     float error = particle_j.mass * ((1 / (particle_i.density * particle_i.density)) + (1 / (particle_j.density * particle_j.density))) * contribution;
     return vec3(acceleration.x, acceleration.y, error);
@@ -109,8 +114,7 @@ vec3 Simulation::calculate_viscosity_force(Particle& particle_i) {
 
 }
 vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle& particle_j) {
-    // h in screen-space coordinates (kernel uses dist/100, smoothing_radius=0.5)
-    const float h_screen = smoothing_radius * 100.0f;     // = 50 px
+    const float h_screen = smoothing_radius;     
     const float eps = 0.01f * h_screen * h_screen;  // regularisation term
 
     vec3 x_ij = particle_i.pos - particle_j.pos;      // screen-space position diff
@@ -121,7 +125,7 @@ vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle
     // Kernel gradient in screen-space (same convention as the pressure gradient):
     //   grad_W = W'(r/100, h_norm) * (x_ij / r)
     // W1 already returns the scalar derivative evaluated at the normalised distance.
-    float W1_val = kernel_manager.W1_viscosity(r/100.0f,smoothing_radius);
+    float W1_val = kernel_manager.W1_viscosity(r,smoothing_radius);
     vec3  grad_W = W1_val * (x_ij / r);
 
     float dot_vx = dot(v_ij, x_ij);
@@ -141,13 +145,13 @@ float Simulation::calculate_density(Particle& particle_i) {
 
 float Simulation::sample_density_contribution(Particle& particle_j) {
     float dist = distance(sample_point, particle_j.pos);
-    float d = kernel_manager.W_density(dist / 100.0f, smoothing_radius);
+    float d = kernel_manager.W_density(dist, smoothing_radius);
     return particle_j.mass * d;
 }
 
 float Simulation::calculate_density_contribution(Particle& particle_i, Particle& particle_j) {
     float dist = distance(particle_i.pos, particle_j.pos);
-    float d = kernel_manager.W_density(dist/100.0f,smoothing_radius);
+    float d = kernel_manager.W_density(dist,smoothing_radius);
     return particle_j.mass * d;
 }
 
@@ -240,15 +244,15 @@ void Simulation::update_spacial_lookup()
     }
 }
 glm::vec<2, int> Simulation::get_cell_coord(vec2 pos) {
-    int file = static_cast<int>(pos.x / (smoothing_radius * 100.0f));
-    int rank = static_cast<int>(pos.y / (smoothing_radius * 100.0f));
+    int file = static_cast<int>(pos.x / (smoothing_radius));
+    int rank = static_cast<int>(pos.y / (smoothing_radius));
 
     return glm::vec<2, int>(file, rank);
 }
 int Simulation::hash_cell(glm::vec<2, int> cell)
 {
-    int grid_width = SCR_WIDTH / (smoothing_radius * 100.0f);
-    int grid_height = SCR_HEIGHT / (smoothing_radius * 100.0f);
+    int grid_width = SCR_WIDTH / (smoothing_radius);
+    int grid_height = SCR_HEIGHT / (smoothing_radius);
 
     //Bounds Check
     if (cell.x < 0 || cell.x > grid_width || cell.y < 0 || cell.y > grid_height) return -1;
@@ -285,10 +289,10 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
 
                 int particleIndex = spatial_lookup[i].first;
                 Particle& particle_j = particles[particleIndex];
-                /*float sqrDst = glm::length2(points[particleIndex] - samplePoint);
-
-                if (sqrDst <= sqrRadius)
-                {*/
+                //float sqrDst = glm::length2(points[particleIndex] - samplePoint);
+                
+                //if (sqrDst <= sqrRadius)
+                //{
                     result += (this->*func)(particle_i, particle_j);
                 //}
 
@@ -385,7 +389,7 @@ void Simulation::print_debug_info() {
             for (int s = start; s < simulation_size; ++s) {
                 if (spatial_lookup[s].second != key) break;
                 Particle& p2 = particles[spatial_lookup[s].first];
-                if (&p != &p2 && distance(p.pos, p2.pos) < 6.0f) duplicates++;
+                if (&p != &p2 && distance(p.pos, p2.pos) < particle_radius/(3*scale)) duplicates++;
             }
         }
     }

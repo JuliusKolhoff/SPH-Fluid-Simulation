@@ -6,7 +6,7 @@
 #include "Rendering.h"
 #include "Particle.h"
 #include "Kernels.h"
-
+#include <omp.h>
 #include <functional>
 
 using namespace glm;
@@ -17,16 +17,23 @@ static const int hashK2 = 9737333;
 class Simulation
 {
 public:
-    const float particle_radius = 16.0f;
-    const float smoothing_radius = 0.5f;
-    unsigned int simulation_size = 500;
-    float target_density = 8.9f;
+    static constexpr float BASE_PARTICLE_RADIUS = 16.0f;
+    static constexpr float BASE_SMOOTHING_RADIUS = 50.0f;
+    static constexpr float BASE_TARGET_DENSITY = 6.9f;
+    static constexpr unsigned int BASE_SIZE = 500;
+
+    // --- Einzige Stellschraube ---
+    float scale = 1.0f;   // 2.0 → 4× Partikel, 3.0 → 9× Partikel, usw.
+
+    // --- Abgeleitete Werte (werden von apply_scale() gesetzt) ---
+    float particle_radius = BASE_PARTICLE_RADIUS;
+    float smoothing_radius = BASE_SMOOTHING_RADIUS;
+    float target_density = BASE_TARGET_DENSITY;
+    unsigned int simulation_size = BASE_SIZE;
     float step_size = 0.01f;
     float k = 40.0f;
     float viscosity = 15;
     float gravity = 60.0f;
-
-    
 
     //Manager
     KernelManager kernel_manager;
@@ -35,6 +42,22 @@ public:
     Particle *particles = nullptr;
     std::pair<int, int> *spatial_lookup = nullptr;
     int *start_indices = nullptr;
+
+    void apply_scale(float new_scale) {
+        scale = new_scale;
+        particle_radius = BASE_PARTICLE_RADIUS / scale;
+        smoothing_radius = BASE_SMOOTHING_RADIUS / scale;
+        target_density = BASE_TARGET_DENSITY * scale * scale;
+        simulation_size = static_cast<unsigned int>(BASE_SIZE * scale * scale);
+
+        // Arrays neu allozieren
+        delete[] particles;
+        delete[] spatial_lookup;
+        delete[] start_indices;
+        particles = new Particle[simulation_size];
+        spatial_lookup = new std::pair<int, int>[simulation_size];
+        start_indices = new int[simulation_size];
+    }
 
 private:
     //debug
@@ -45,9 +68,9 @@ private:
     static Simulation* instance;
 
     Simulation(){
-        particles = new Particle[simulation_size];
+        /*particles = new Particle[simulation_size];
         spatial_lookup = new std::pair<int, int>[simulation_size];
-        start_indices = new int[simulation_size];
+        start_indices = new int[simulation_size];*/
     };
     glm::vec<2, int> cell_offsets[9] =
     {
@@ -65,6 +88,7 @@ public:
     static Simulation& get_instance() {
         if (instance == nullptr) {
             instance = new Simulation();
+            instance->apply_scale(4.0f);
         }
         return *instance;
     }

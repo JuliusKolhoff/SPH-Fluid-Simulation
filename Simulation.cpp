@@ -2,7 +2,7 @@
 
 Simulation* Simulation::instance = nullptr;
 
-void Simulation::step(float delta_time) {
+void Simulation::step(float delta_time,GLFWwindow* window) {
     // CFL condition A Survey Sec.2.9:
     float v_max = 1.0f;   // avoid div/0
     for (int i = 0; i < simulation_size; ++i)
@@ -24,7 +24,7 @@ void Simulation::step(float delta_time) {
         Particle& p = particles[i];
         calculate_density(p);
         /*float ratio = p.density / target_density;
-        p.color = vec3(ratio, 0.2f, 1.0f - ratio);*/
+        p.color = vec3(1.0f - ratio,1.0f  - ratio, 1.0f);*/
         sum += p.density;
     }
     density_sum = sum;
@@ -50,8 +50,38 @@ void Simulation::step(float delta_time) {
             p.velocity += vec3(accel, 0.0f) * step_size;
             p.velocity += calculate_viscosity_force(p) * step_size;
             //p.velocity *= 0.99f;
+            
+            
+            float speed = length(vec2(p.velocity));
+            float v_max = 1000.0f;
+            float ratio = clamp(speed / v_max, 0.0f, 1.0f);
+            ratio /= 2;
+            p.color = vec3(ratio, ratio, 1.0f);
+
+
+            vec2 externalForces = vec2(0);
+            float range = 100;
+            float force = -k * 0.5f;
+            if (right_mouse_down)
+            {
+                double x, y;
+                glfwGetCursorPos(window, &x, &y);
+                y = SCR_HEIGHT - y;
+                force_point = vec3(x, y, 0.0f);
+                vec2 moveToMouse = force_point - p.pos;
+                if (length(moveToMouse) < range)
+                {
+                    /*if (Input.GetMouseButton(1))
+                    {
+                        moveToMouse *= -1;
+                    }*/
+                    p.velocity += vec3((moveToMouse/length(moveToMouse)) * force,0.0f);
+                }
+            }
         }
     }
+    
+
 
 #pragma omp parallel for schedule(static)
     //// 4 Integrate
@@ -318,7 +348,7 @@ void Simulation::create_particles(){
     for (unsigned int i = 0; i < simulation_size; i++) {
         particles[i].pos.x = start_x + (i % cols) * diameter;
         particles[i].pos.y = start_y + (i / cols) * diameter;
-        particles[i].color = { 1.0,1.0,1.0 };
+        particles[i].color = base_particle_color;
     }
     update_spacial_lookup();
     //create_walls();
@@ -329,7 +359,7 @@ void Simulation::random_particles() {
     for (unsigned int i = 0; i < simulation_size; i++) {
         particles[i].pos.x = ((float)rand() / RAND_MAX) * SCR_WIDTH;
         particles[i].pos.y = ((float)rand() / RAND_MAX) * SCR_HEIGHT;
-        particles[i].color = { 1.0,1.0,1.0 };
+        particles[i].color = base_particle_color;
     }
     update_spacial_lookup();
     //create_walls();
@@ -380,7 +410,7 @@ void Simulation::print_debug_info() {
     float duplicates = 0;
     for (int i = 0; i < simulation_size; ++i) {
         Particle& p = particles[i];
-        p.color = { 1,1,1 };
+        p.color = base_particle_color;
         glm::vec<2, int> centre = get_cell_coord(p.pos);
         for (glm::vec<2, int> offset : cell_offsets) {
             int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
@@ -404,7 +434,7 @@ void Simulation::print_debug_info() {
         for (int s = start; s < simulation_size; ++s) {
             if (spatial_lookup[s].second != key) break;
             Particle& p2 = particles[spatial_lookup[s].first];
-            p2.color = { 0,1,0 };
+            p2.color = highlighted_particle_color;
             density += sample_density_contribution(p2);
         }
     }

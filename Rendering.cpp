@@ -21,7 +21,9 @@ int Rendering::start(GLFWwindow* window) {
 	gladLoadGL();
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glEnable(GL_BLEND);
 
 	Simulation::get_instance().create_particles();
 
@@ -44,6 +46,8 @@ int Rendering::start(GLFWwindow* window) {
     shader.Use();
     shader.setVec2("u_resolution", (float)SCR_WIDTH, (float)SCR_HEIGHT);
     shader.setFloat("u_radius", Simulation::get_instance().particle_radius);
+    shader.setBool("u_render_complex", true);
+    shader.setFloat("u_radius_increase", 10.0f);
 
     VertexArrayObject vao;
     
@@ -75,7 +79,7 @@ int Rendering::start(GLFWwindow* window) {
         
         //Simulation Step
         if (run_simulation) {
-            Simulation::get_instance().step(deltaTime);
+            Simulation::get_instance().step(deltaTime,window);
 
         }
 
@@ -197,13 +201,25 @@ void Rendering::mouse_button_callback(GLFWwindow* window, int button, int action
         y = SCR_HEIGHT - y;
         Simulation::get_instance().sample_at_point(vec3(x, y, 0.0f));
     }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    {
+        double x, y;
+        glfwGetCursorPos(window, &x, &y);
+        y = SCR_HEIGHT - y;
+        Simulation::get_instance().force_point = vec3(x, y,0);
+        Simulation::get_instance().right_mouse_down = true;
+    }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
+    {
+        Simulation::get_instance().right_mouse_down = false;
+    }
 }
 
 void Rendering::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
     
     
-   /* float xpos = static_cast<float>(xposIn);
+    /*float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
     if (firstMouse)

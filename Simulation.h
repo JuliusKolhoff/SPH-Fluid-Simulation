@@ -8,10 +8,11 @@
 #include "Kernels.h"
 #include <omp.h>
 #include <functional>
+#include "GLFW/glfw3.h"
 
 using namespace glm;
 //hash 1 has 0ne added 5 at the end
-static const int hashK1 = 158235;
+static const int hashK1 = 15823;
 static const int hashK2 = 9737333;
 
 class Simulation
@@ -22,10 +23,8 @@ public:
     static constexpr float BASE_TARGET_DENSITY = 6.9f;
     static constexpr unsigned int BASE_SIZE = 500;
 
-    // --- Einzige Stellschraube ---
-    float scale = 1.0f;   // 2.0 → 4× Partikel, 3.0 → 9× Partikel, usw.
+    float scale = 1.0f;
 
-    // --- Abgeleitete Werte (werden von apply_scale() gesetzt) ---
     float particle_radius = BASE_PARTICLE_RADIUS;
     float smoothing_radius = BASE_SMOOTHING_RADIUS;
     float target_density = BASE_TARGET_DENSITY;
@@ -34,6 +33,9 @@ public:
     float k = 40.0f;
     float viscosity = 15;
     float gravity = 60.0f;
+
+    bool right_mouse_down = false;
+    vec3 force_point = vec3(0);
 
     //Manager
     KernelManager kernel_manager;
@@ -64,6 +66,9 @@ private:
     float error_sum = 0;
     float density_sum = 0;
     vec3 sample_point = vec3(0);
+
+    vec3 base_particle_color = { 0.0f,0.0f,1.0f };
+    vec3 highlighted_particle_color = { 0.0f,1.0f,0.0f };
 
     static Simulation* instance;
 
@@ -99,7 +104,7 @@ public:
     }
     void create_particles();
     void random_particles();
-	void step(float delta_time);
+	void step(float delta_time,GLFWwindow* window);
     float calculate_density(Particle &particle);
     float sample_density_contribution(Particle& particle_j);
     float calculate_density_contribution(Particle& particle_i, Particle& particle_j);

@@ -7,6 +7,9 @@ out vec2 oRadius;
 
 uniform float u_radius;
 uniform vec2 u_resolution;
+uniform bool u_render_complex;
+uniform float u_radius_increase;
+   
 
 in vec3 Color[];
 out vec3 oColor;
@@ -20,17 +23,21 @@ void main(){
 	center = (vec2(gl_in[0].gl_Position) + vec2(1f)) * 0.5f;
 	//oRadius = 0.5f * (u_radius / 800);
 	oRadius = vec2(u_radius) * 0.5f;
+	float rad = u_radius;
+	if(u_render_complex){
+		 rad *= u_radius_increase;
+	}
 
-	gl_Position = gl_in[0].gl_Position + vec4(-u_radius/u_resolution.x,-u_radius/u_resolution.y,0.0f,0.0f);
+	gl_Position = gl_in[0].gl_Position + vec4(-rad/u_resolution.x,-rad/u_resolution.y,0.0f,0.0f);
 	EmitVertex();
 
-	gl_Position = gl_in[0].gl_Position + vec4(-u_radius/u_resolution.x,u_radius/u_resolution.y,0.0f,0.0f);
+	gl_Position = gl_in[0].gl_Position + vec4(-rad/u_resolution.x,rad/u_resolution.y,0.0f,0.0f);
 	EmitVertex();
 
-	gl_Position = gl_in[0].gl_Position + vec4(u_radius/u_resolution.x,-u_radius/u_resolution.y,0.0f,0.0f);
+	gl_Position = gl_in[0].gl_Position + vec4(rad/u_resolution.x,-rad/u_resolution.y,0.0f,0.0f);
 	EmitVertex();
 
-	gl_Position = gl_in[0].gl_Position + vec4(u_radius/u_resolution.x,u_radius/u_resolution.y,0.0f,0.0f);
+	gl_Position = gl_in[0].gl_Position + vec4(rad/u_resolution.x,rad/u_resolution.y,0.0f,0.0f);
 	EmitVertex();
 
 	EndPrimitive();

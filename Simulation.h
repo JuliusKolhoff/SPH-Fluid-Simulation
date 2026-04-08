@@ -21,6 +21,7 @@ public:
     static constexpr float BASE_SMOOTHING_RADIUS = 50.0f;
     static constexpr float BASE_TARGET_DENSITY = 6.9f;
     static constexpr unsigned int BASE_SIZE = 300;
+    static constexpr unsigned int BASE_OBSTACLE_COUNT = 250;
 
     float scale = 1.0f;
 
@@ -28,7 +29,7 @@ public:
     float smoothing_radius = BASE_SMOOTHING_RADIUS;
     float target_density = BASE_TARGET_DENSITY;
     unsigned int simulation_size = BASE_SIZE;
-    unsigned int obstacle_particle_count = 500;
+    unsigned int obstacle_particle_count = BASE_OBSTACLE_COUNT;
 
     float step_size = 0.01f;
     float k = 40.0f;
@@ -52,7 +53,7 @@ public:
         smoothing_radius = BASE_SMOOTHING_RADIUS / scale;
         target_density = BASE_TARGET_DENSITY * scale * scale;
         simulation_size = static_cast<unsigned int>(BASE_SIZE * scale * scale);
-
+        obstacle_particle_count = BASE_OBSTACLE_COUNT * scale * scale;
         // Arrays neu allozieren
         delete[] particles;
         delete[] spatial_lookup;

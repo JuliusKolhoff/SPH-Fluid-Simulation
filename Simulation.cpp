@@ -376,7 +376,7 @@ void Simulation::create_obstacles() {
     int count = 0;
     float frequency = 1.0f;
     bool  fill = true;
-    int max_fill_depth = 2;
+    int max_fill_depth = scale;
     //---SLOPE---
     /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH &&  count < obstacle_particle_count; i+= frequency) {
         float x = i * particle_radius;

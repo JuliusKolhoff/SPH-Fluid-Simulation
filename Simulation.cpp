@@ -375,8 +375,8 @@ void Simulation::random_particles() {
 void Simulation::create_obstacles() {
     int count = 0;
     float frequency = 1.0f;
-    bool  fill = false;
-
+    bool  fill = true;
+    int max_fill_depth = 2;
     //---SLOPE---
     /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH &&  count < obstacle_particle_count; i+= frequency) {
         float x = i * particle_radius;
@@ -415,7 +415,7 @@ void Simulation::create_obstacles() {
         if (y < 0) break;
         if (fill) {
             float old_y = y;
-            for (int j = 0; j < 2 && y > 0 && count < obstacle_particle_count; j++) {
+            for (int j = 0; j < max_fill_depth && y > 0 && count < obstacle_particle_count; j++) {
                 y -= frequency * particle_radius;
                 particles[simulation_size + count].pos = vec3(x, y, 0.0f);
                 particles[simulation_size + count].color = obstacle_color;

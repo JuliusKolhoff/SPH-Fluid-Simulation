@@ -28,7 +28,7 @@ public:
     float smoothing_radius = BASE_SMOOTHING_RADIUS;
     float target_density = BASE_TARGET_DENSITY;
     unsigned int simulation_size = BASE_SIZE;
-    unsigned int obstacle_particle_count = 300;
+    unsigned int obstacle_particle_count = 500;
 
     float step_size = 0.01f;
     float k = 40.0f;
@@ -95,7 +95,7 @@ public:
     static Simulation& get_instance() {
         if (instance == nullptr) {
             instance = new Simulation();
-            instance->apply_scale(1.0f);
+            instance->apply_scale(2.0f);
         }
         return *instance;
     }

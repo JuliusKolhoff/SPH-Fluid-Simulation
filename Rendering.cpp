@@ -46,7 +46,7 @@ int Rendering::start(GLFWwindow* window) {
     shader.Use();
     shader.setVec2("u_resolution", (float)SCR_WIDTH, (float)SCR_HEIGHT);
     shader.setFloat("u_radius", Simulation::get_instance().particle_radius);
-    shader.setBool("u_render_complex", true);
+    shader.setBool("u_render_complex", false);
     shader.setFloat("u_radius_increase", 10.0f);
 
     VertexArrayObject vao;
@@ -101,8 +101,13 @@ int Rendering::start(GLFWwindow* window) {
         
         shader.Use();
         vao.Bind();
-
-        glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
+        bool draw_obstacles = true;
+        if (draw_obstacles) {
+            glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size + Simulation::get_instance().obstacle_particle_count);
+        }
+        else {
+            glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
+        }
 
         /*----------------------------------------------------------Draw Primitives--------------------------------------------------------------------------*/
         /*primitive_vertices.clear();

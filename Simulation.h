@@ -11,8 +11,7 @@
 #include "GLFW/glfw3.h"
 
 using namespace glm;
-//hash 1 has 0ne added 5 at the end
-static const int hashK1 = 15823;
+static const int hashK1 = 158235;
 static const int hashK2 = 9737333;
 
 class Simulation
@@ -21,7 +20,7 @@ public:
     static constexpr float BASE_PARTICLE_RADIUS = 16.0f;
     static constexpr float BASE_SMOOTHING_RADIUS = 50.0f;
     static constexpr float BASE_TARGET_DENSITY = 6.9f;
-    static constexpr unsigned int BASE_SIZE = 500;
+    static constexpr unsigned int BASE_SIZE = 300;
 
     float scale = 1.0f;
 
@@ -29,6 +28,8 @@ public:
     float smoothing_radius = BASE_SMOOTHING_RADIUS;
     float target_density = BASE_TARGET_DENSITY;
     unsigned int simulation_size = BASE_SIZE;
+    unsigned int obstacle_particle_count = 300;
+
     float step_size = 0.01f;
     float k = 40.0f;
     float viscosity = 15;
@@ -56,9 +57,9 @@ public:
         delete[] particles;
         delete[] spatial_lookup;
         delete[] start_indices;
-        particles = new Particle[simulation_size];
-        spatial_lookup = new std::pair<int, int>[simulation_size];
-        start_indices = new int[simulation_size];
+        particles = new Particle[simulation_size + obstacle_particle_count];
+        spatial_lookup = new std::pair<int, int>[simulation_size + obstacle_particle_count];
+        start_indices = new int[simulation_size + obstacle_particle_count];
     }
 
 private:
@@ -69,6 +70,7 @@ private:
 
     vec3 base_particle_color = { 0.0f,0.0f,1.0f };
     vec3 highlighted_particle_color = { 0.0f,1.0f,0.0f };
+    vec3 obstacle_color = { 1.0f,0.0f,0.0f };
 
     static Simulation* instance;
 
@@ -93,7 +95,7 @@ public:
     static Simulation& get_instance() {
         if (instance == nullptr) {
             instance = new Simulation();
-            instance->apply_scale(4.0f);
+            instance->apply_scale(1.0f);
         }
         return *instance;
     }
@@ -124,6 +126,6 @@ public:
     template <typename R> R do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(Particle&,Particle&));
     void print_debug_info();
 private:
-    void create_walls();
+    void create_obstacles();
    
 };

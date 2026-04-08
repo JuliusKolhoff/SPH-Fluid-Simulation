@@ -23,5 +23,4 @@ public:
 		color = { r,g,b };
 		velocity = {0.0f,0.0f,0.0f};
 	}
-	
 };

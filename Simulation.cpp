@@ -20,9 +20,10 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     // 1 Density
     float sum = 0;
 #pragma omp parallel for reduction(+:sum) schedule(dynamic, 32)
-    for (int i = 0; i < simulation_size; ++i) {
+    for (int i = 0; i < simulation_size  +  obstacle_particle_count; ++i) {
         Particle& p = particles[i];
         calculate_density(p);
+        
         /*float ratio = p.density / target_density;
         p.color = vec3(1.0f - ratio,1.0f  - ratio, 1.0f);*/
         sum += p.density;
@@ -30,7 +31,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     density_sum = sum;
 #pragma omp parallel for schedule(static)
     //2 Pressure
-    for (int i = 0; i < simulation_size; ++i) {
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
         Particle& p = particles[i];
         if (p.movable) {
             // Berechne Druck basierend auf Dichte-Fehler
@@ -40,7 +41,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     }
 #pragma omp parallel for schedule(dynamic, 32)
     // 3 Forces
-    for (int i = 0; i < simulation_size; ++i)
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
     {
         Particle& p = particles[i];
         if (p.movable) {
@@ -56,11 +57,12 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             float v_max = 1000.0f;
             float ratio = clamp(speed / v_max, 0.0f, 1.0f);
             ratio /= 2;
-            p.color = vec3(ratio, ratio, 1.0f);
+            //p.color = vec3(ratio, ratio, 1.0f);
 
 
             vec2 externalForces = vec2(0);
             float range = 100;
+            //float force = k * 0.05f;
             float force = -k * 0.5f;
             if (right_mouse_down)
             {
@@ -85,7 +87,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
 
 #pragma omp parallel for schedule(static)
     //// 4 Integrate
-    for (int i = 0; i < simulation_size; ++i)
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
     {
         Particle& p = particles[i];
         if (p.movable)
@@ -128,7 +130,7 @@ vec3 Simulation::calculate_pressure_contribution(Particle& particle_i, Particle&
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers
 vec2 Simulation::calculate_pressue_acceleration(Particle& particle_i) {
     vec2 pressure_gradient = calculate_pressure_gradient(particle_i);
-    if (all(isnan((pressure_gradient)))) {
+    if (any(isnan((pressure_gradient)))) {
         pressure_gradient = vec2(0);
     }
     return -pressure_gradient;
@@ -170,6 +172,8 @@ vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle
 float Simulation::calculate_density(Particle& particle_i) {
     float density = do_for_each_neighbour<float>(particle_i,&Simulation::calculate_density_contribution);
     particle_i.density = density;
+    if (density == 0)
+        std::cout << particle_i.pos.x << "," << particle_i.pos.y << std::endl;
     return density;
 }
 
@@ -181,13 +185,13 @@ float Simulation::sample_density_contribution(Particle& particle_j) {
 
 float Simulation::calculate_density_contribution(Particle& particle_i, Particle& particle_j) {
     float dist = distance(particle_i.pos, particle_j.pos);
-    float d = kernel_manager.W_density(dist,smoothing_radius);
+    float d = kernel_manager.W_density(dist, smoothing_radius);
     return particle_j.mass * d;
 }
 
 void Simulation::update_vertex_data(std::vector<GLfloat> *vertices) {
     vertices->clear();
-    for (int i = 0; i < simulation_size;i++) {
+    for (int i = 0; i < simulation_size + obstacle_particle_count;i++) {
         vertices->push_back(particles[i].pos.x);
         vertices->push_back(particles[i].pos.y);
         vertices->push_back(particles[i].pos.z);
@@ -249,12 +253,12 @@ void Simulation::handle_collisions(Particle& particle)
 }
 void Simulation::update_spacial_lookup()
 {
-    for (int i = 0; i < (int)simulation_size; ++i) {
+    for (int i = 0; i < (int)simulation_size + obstacle_particle_count; ++i) {
         Particle& particle = particles[i];
 
         vec<2,int> cell = get_cell_coord(particle.pos);
         int hash = hash_cell(cell);
-        int key = KeyFromHash(hash, simulation_size);
+        int key = KeyFromHash(hash, simulation_size + obstacle_particle_count);
         spatial_lookup[i] = std::make_pair(i, key);
         start_indices[i] = INT_MAX;
     }
@@ -263,9 +267,9 @@ void Simulation::update_spacial_lookup()
         return a.second > b.second;
     };
 
-    std::sort(spatial_lookup, spatial_lookup + simulation_size, compare);
+    std::sort(spatial_lookup, spatial_lookup + simulation_size + obstacle_particle_count, compare);
 
-    for (int i = 0; i < (int)simulation_size; ++i) {
+    for (int i = 0; i < (int)simulation_size + obstacle_particle_count; ++i) {
         int key = spatial_lookup[i].second;
         int prev_key = i == 0 ? INT_MAX : spatial_lookup[i - 1].second;
         if (key != prev_key) {
@@ -308,11 +312,11 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
         for (glm::vec<2, int> offset : cell_offsets)
         {
             // Get key of current cell, then loop over all points that share that key
-            int key = KeyFromHash(hash_cell(centre+offset),simulation_size);
+            int key = KeyFromHash(hash_cell(centre+offset),simulation_size + obstacle_particle_count);
             if (key == -1) continue;
             int cellStartIndex = start_indices[key];
 
-            for (int i = cellStartIndex; i < simulation_size; i++)
+            for (int i = cellStartIndex; i < simulation_size + obstacle_particle_count; i++)
             {
                 // Exit loop if we're no longer looking at the correct cell
                 if (spatial_lookup[i].second != key) break;
@@ -342,16 +346,18 @@ void Simulation::create_particles(){
     // Centre 
     float start_x = (SCR_WIDTH - block_w) / 2.0f + particle_radius;
     float start_y = (SCR_HEIGHT - block_h) / 2.0f + particle_radius;
-    start_y = (SCR_HEIGHT - block_h)  -  100;
+    start_y = (SCR_HEIGHT - block_h);
     start_y = glm::max(particle_radius, start_y);
+
+    //start_x = 0;
 
     for (unsigned int i = 0; i < simulation_size; i++) {
         particles[i].pos.x = start_x + (i % cols) * diameter;
         particles[i].pos.y = start_y + (i / cols) * diameter;
         particles[i].color = base_particle_color;
     }
+    create_obstacles();  
     update_spacial_lookup();
-    //create_walls();
 
 }
 void Simulation::random_particles() {
@@ -361,13 +367,73 @@ void Simulation::random_particles() {
         particles[i].pos.y = ((float)rand() / RAND_MAX) * SCR_HEIGHT;
         particles[i].color = base_particle_color;
     }
+    create_obstacles();
     update_spacial_lookup();
-    //create_walls();
 
 }
 
-void Simulation::create_walls() {
-    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH; i += 2) {
+void Simulation::create_obstacles() {
+    int count = 0;
+    float frequency = 1.0f;
+    bool  fill = false;
+
+    //---SLOPE---
+    /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH &&  count < obstacle_particle_count; i+= frequency) {
+        float x = i * particle_radius;
+        float y = (SCR_HEIGHT / 2) - (i / 2.0f) * particle_radius;
+        if (y < 0) break;
+        if (fill) {
+            for (int j = 0; y > 0 && count < obstacle_particle_count;j++) {
+                y -= frequency * particle_radius;
+                particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+                particles[simulation_size + count].color = obstacle_color;
+                particles[simulation_size + count].movable = false;
+                count++;
+            }
+        }
+        else {
+            particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            count++;
+        }
+    }*/
+
+
+    //---SPIKE---
+    float height = 400;
+    float x = -particle_radius, y = particle_radius - (height / (SCR_WIDTH / 2)) * particle_radius;
+    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH + particle_radius && count < obstacle_particle_count; i += frequency) {
+        x += particle_radius;
+        if (i * particle_radius <= SCR_WIDTH / 2) {
+            y += (height/(SCR_WIDTH / 2)) * particle_radius;
+        }
+        else {
+            y -= (height/(SCR_WIDTH / 2)) * particle_radius;
+        }
+        
+        if (y < 0) break;
+        if (fill) {
+            float old_y = y;
+            for (int j = 0; j < 2 && y > 0 && count < obstacle_particle_count; j++) {
+                y -= frequency * particle_radius;
+                particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+                particles[simulation_size + count].color = obstacle_color;
+                particles[simulation_size + count].movable = false;
+                count++;
+            }
+            y = old_y;
+        }
+        else {
+            particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            count++;
+        }
+    }
+    obstacle_particle_count = count;
+
+    //for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH; i += 2) {
         /*float y = 1;
         float x = i * particle_radius;
         Particle particle = Particle(x, y, 0.0f, 1.0f, 0.0f, 0.0f);
@@ -388,7 +454,7 @@ void Simulation::create_walls() {
         particle = Particle(x, y, 0.0f, 1.0f, 0.0f, 0.0f);
         particle.movable = false;
         particles.push_back(particle);*/
-    }
+    // }
 }
 void Simulation::sample_at_point(vec3 pos) {
     sample_point = pos;
@@ -408,9 +474,11 @@ void Simulation::print_debug_info() {
     //Sample
     //Count Duplicates
     float duplicates = 0;
-    for (int i = 0; i < simulation_size; ++i) {
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
         Particle& p = particles[i];
         p.color = base_particle_color;
+        if (!p.movable)
+            p.color = obstacle_color;
         glm::vec<2, int> centre = get_cell_coord(p.pos);
         for (glm::vec<2, int> offset : cell_offsets) {
             int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
@@ -428,10 +496,10 @@ void Simulation::print_debug_info() {
     float density = 0;
     glm::vec<2, int> centre = get_cell_coord(vec2(sample_point));
     for (glm::vec<2, int> offset : cell_offsets) {
-        int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
+        int key = KeyFromHash(hash_cell(centre + offset), simulation_size + obstacle_particle_count);
         if (key == -1) continue;
         int start = start_indices[key];
-        for (int s = start; s < simulation_size; ++s) {
+        for (int s = start; s < simulation_size + obstacle_particle_count; ++s) {
             if (spatial_lookup[s].second != key) break;
             Particle& p2 = particles[spatial_lookup[s].first];
             p2.color = highlighted_particle_color;

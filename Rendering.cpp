@@ -21,10 +21,20 @@ int Rendering::start(GLFWwindow* window) {
 	gladLoadGL();
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+
+    //REndering settings----
     //glEnable(GL_DEPTH_TEST);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    if (Simulation::get_instance().render_complex) {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);                    // additive glow(soft particles)
+    }
+    else {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);     // standard 
+    }
     glEnable(GL_BLEND);
 
+    glEnable(GL_MULTISAMPLE);
+
+    //----
 	Simulation::get_instance().create_particles();
 
     Shader primitive_shader("VertexShader.vert", "PrimitiveShader.frag");
@@ -46,8 +56,8 @@ int Rendering::start(GLFWwindow* window) {
     shader.Use();
     shader.setVec2("u_resolution", (float)SCR_WIDTH, (float)SCR_HEIGHT);
     shader.setFloat("u_radius", Simulation::get_instance().particle_radius);
-    shader.setBool("u_render_complex", false);
-    shader.setFloat("u_radius_increase", 10.0f);
+    shader.setBool("u_render_complex", Simulation::get_instance().render_complex);
+    shader.setFloat("u_radius_increase", Simulation::get_instance().radius_increase);
 
     VertexArrayObject vao;
     

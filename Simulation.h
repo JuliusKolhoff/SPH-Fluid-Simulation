@@ -32,12 +32,19 @@ public:
     unsigned int obstacle_particle_count = BASE_OBSTACLE_COUNT;
 
     float step_size = 0.01f;
-    float k = 40.0f;
-    float viscosity = 15;
+    /*float k = 40.0f;
+    float viscosity = 15;*/
+    float k = 1280.0f;
+    float viscosity = 60.0f;
     float gravity = 60.0f;
 
     bool right_mouse_down = false;
     vec3 force_point = vec3(0);
+
+    //Crude Rendering Improvement
+    bool render_complex = true;
+    float radius_increase = 6.0f;
+    //float radius_increase = 10.0f;
 
     //Manager
     KernelManager kernel_manager;

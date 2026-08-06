@@ -10,8 +10,10 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
 
     const float lambda = 0.4f;
     const float h_px = smoothing_radius;   // kernel radius in screen px
+
     step_size = lambda * h_px / v_max;
-    step_size = min(step_size, 0.016f);
+    //step_size = min(step_size, delta_time);
+    step_size = min(step_size, 0.016f); // safety
 
     update_spacial_lookup();
     error_sum = 0;
@@ -39,8 +41,10 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
 
         }
     }
-#pragma omp parallel for schedule(dynamic, 32)
     // 3 Forces
+    double x, y;//Mouse POs
+    glfwGetCursorPos(window, &x, &y);
+#pragma omp parallel for schedule(dynamic, 32)
     for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
     {
         Particle& p = particles[i];
@@ -53,21 +57,27 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             //p.velocity *= 0.99f;
             
             
-            float speed = length(vec2(p.velocity));
+           /* float speed = length(vec2(p.velocity));
             float v_max = 1000.0f;
             float ratio = clamp(speed / v_max, 0.0f, 1.0f);
-            ratio /= 2;
+            ratio /= 2;*/
             //p.color = vec3(ratio, ratio, 1.0f);
+
+            float speed = length(vec2(p.velocity));
+            float max_speed = 600.0f;
+            float t = clamp(speed / max_speed, 0.0f, 1.0f); 
+            // deep blue (slow/calm) -> cyan -> white (fast/turbulent)
+            vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
+            vec3 fast_color = vec3(0.9f, 0.95f, 1.0f);
+            p.color = mix(slow_color, fast_color, t); // glm::mix, or lerp manually
 
 
             vec2 externalForces = vec2(0);
             float range = 100;
             //float force = k * 0.05f;
-            float force = -k * 0.5f;
+            float force = -k * 0.05f;
             if (right_mouse_down)
             {
-                double x, y;
-                glfwGetCursorPos(window, &x, &y);
                 y = SCR_HEIGHT - y;
                 force_point = vec3(x, y, 0.0f);
                 vec2 moveToMouse = force_point - p.pos;
@@ -105,7 +115,7 @@ float Simulation::calculate_pressure(Particle& particle_i) {
     /*float  pressure = particle_i.density - (*instance).target_density;
     return k * max(0.0f,pressure);*/
     float  pressure = particle_i.density / (*instance).target_density;
-    return max(0.0f, k * (powf(pressure, 7.0f) - 1.0f));
+    return max(-INFINITY, k * (powf(pressure, 7.0f) - 1.0f));
 }
 
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers  /  Page 4 Eqation(12)
@@ -142,7 +152,8 @@ vec3 Simulation::calculate_viscosity_force(Particle& particle_i) {
     // For a 2-D simulation d=2, so the prefactor 2*(d+2) = 8.
     const float d = 2.0f;
     const float prefactor = 2.0f * (d + 2.0f);            // = 8
-    return (viscosity/particle_i.density) * prefactor * do_for_each_neighbour<vec3>(particle_i, &Simulation::calculate_viscosity_contribution);
+    float safe_density = std::max(particle_i.density, 1e-4f);
+    return (viscosity/safe_density) * prefactor * do_for_each_neighbour<vec3>(particle_i, &Simulation::calculate_viscosity_contribution);
 
 }
 vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle& particle_j) {
@@ -273,7 +284,9 @@ void Simulation::update_spacial_lookup()
         int key = spatial_lookup[i].second;
         int prev_key = i == 0 ? INT_MAX : spatial_lookup[i - 1].second;
         if (key != prev_key) {
-            start_indices[key] = i;
+            if (key >= 0 && key < (int)(simulation_size + obstacle_particle_count)) {
+                start_indices[key] = i;
+            }
         }
     }
 }
@@ -293,7 +306,10 @@ int Simulation::hash_cell(glm::vec<2, int> cell)
 
     int a = cell.x * hashK1;
     int b = cell.y * hashK2;
-    return (a + b);
+    return (a + b); 
+    /*uint32_t a = static_cast<uint32_t>(cell.x) * 92837111u;
+    uint32_t b = static_cast<uint32_t>(cell.y) * 689287499u;
+    return a ^ b;*/
 }
 
 int Simulation::KeyFromHash(int hash, int tableSize)
@@ -301,24 +317,25 @@ int Simulation::KeyFromHash(int hash, int tableSize)
     //hash out of bound -> no key
     if (hash < 0) return -1;
     return hash % tableSize;
+    /*if (hash == UINT32_MAX) return -1;
+    return static_cast<int>(hash % static_cast<uint32_t>(tableSize));*/
 }
-//R for Return  O for object to call on
 template <typename R> 
 R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(Particle&, Particle&)) {
-        // Find which cell the sample point is in (this will be the centre of our 3x3 block)
+
         glm::vec<2,int> centre = get_cell_coord(particle_i.pos);
         R result = R{};
-        // Loop over all cells of the 3x3 block around the centre cell
+
         for (glm::vec<2, int> offset : cell_offsets)
         {
-            // Get key of current cell, then loop over all points that share that key
+            // Get key of current cell
             int key = KeyFromHash(hash_cell(centre+offset),simulation_size + obstacle_particle_count);
             if (key == -1) continue;
             int cellStartIndex = start_indices[key];
-
+            //Loop all Neighbouts
             for (int i = cellStartIndex; i < simulation_size + obstacle_particle_count; i++)
             {
-                // Exit loop if we're no longer looking at the correct cell
+                //BReak if no longer right key
                 if (spatial_lookup[i].second != key) break;
 
                 int particleIndex = spatial_lookup[i].first;

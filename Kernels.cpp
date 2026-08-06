@@ -10,7 +10,8 @@ float KernelManager::W1_pressure(float dist, float radius)
 }
 float KernelManager::W1_viscosity(float dist, float radius)
 {
-    return smoothing_kernel_derivative(dist,radius);
+    //return smoothing_kernel_derivative(dist,radius);
+    return spiky_kernel_derivative(dist, radius);
 }
 
 float KernelManager::smoothing_kernel(float  dist, float radius) {
@@ -46,4 +47,5 @@ float KernelManager::spiky_kernel_derivative(float dist, float radius) {
     float scale = 30.0f / (M_PI * pow(radius, 5));
     return -scale * h_r * h_r;
 }
+
 

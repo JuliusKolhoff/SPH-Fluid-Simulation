@@ -15,6 +15,7 @@ Rendering renderer;
 int main() {
 	renderer = Rendering();
 	GLFWwindow* window;
+	glfwWindowHint(GLFW_SAMPLES, 4);
 	check(renderer.createWindow(SCR_WIDTH, SCR_HEIGHT, window));
 	
 	glfwSetCursorPosCallback(window, mouse_callback);

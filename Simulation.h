@@ -43,7 +43,7 @@ public:
 
     //Crude Rendering Improvement
     bool render_complex = true;
-    float radius_increase = 6.0f;
+    float radius_increase = 7.0f;
     //float radius_increase = 10.0f;
 
     //Manager

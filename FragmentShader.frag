@@ -14,6 +14,7 @@ in vec3 oColor;
 
 float smoothing_kernel(float  dist) {
     float volume = 3.141f/ 4.0f;
+    volume = 1; // NO Volume correction for visuals
     float value = max(0.0f, 1.0f - dist * dist);
     return (value * value * value / volume);
 }

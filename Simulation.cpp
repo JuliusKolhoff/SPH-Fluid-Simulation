@@ -44,6 +44,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     // 3 Forces
     double x, y;//Mouse POs
     glfwGetCursorPos(window, &x, &y);
+    y = SCR_HEIGHT - y;
 #pragma omp parallel for schedule(dynamic, 32)
     for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
     {
@@ -78,7 +79,6 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             float force = -k * 0.05f;
             if (right_mouse_down)
             {
-                y = SCR_HEIGHT - y;
                 force_point = vec3(x, y, 0.0f);
                 vec2 moveToMouse = force_point - p.pos;
                 if (length(moveToMouse) < range)

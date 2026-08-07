@@ -11,8 +11,8 @@
 #include "GLFW/glfw3.h"
 
 using namespace glm;
-static const int hashK1 = 158235;
-static const int hashK2 = 9737333;
+static const int hashK1 = 4000009;
+static const int hashK2 = 8000011;
 
 class Simulation
 {

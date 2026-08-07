@@ -14,7 +14,6 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     step_size = lambda * h_px / v_max;
     //step_size = min(step_size, delta_time);
     step_size = min(step_size, 0.016f); // safety
-
     update_spacial_lookup();
     error_sum = 0;
     density_sum = 0;
@@ -63,15 +62,15 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             float ratio = clamp(speed / v_max, 0.0f, 1.0f);
             ratio /= 2;*/
             //p.color = vec3(ratio, ratio, 1.0f);
-
+            //COlor Coading
             float speed = length(vec2(p.velocity));
             float max_speed = 600.0f;
             float t = clamp(speed / max_speed, 0.0f, 1.0f); 
-            // deep blue (slow/calm) -> cyan -> white (fast/turbulent)
+            //blue (slow) -> cyan -> white (fast)
             vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
             vec3 fast_color = vec3(0.9f, 0.95f, 1.0f);
-            p.color = mix(slow_color, fast_color, t); // glm::mix, or lerp manually
-
+            //vec3 fast_color = vec3(0.9f, 0.5f, 0.5f);
+            p.color = mix(slow_color, fast_color, t);
 
             vec2 externalForces = vec2(0);
             float range = 100;
@@ -392,7 +391,7 @@ void Simulation::random_particles() {
 void Simulation::create_obstacles() {
     int count = 0;
     float frequency = 1.0f;
-    bool  fill = true;
+    bool  fill = false;
     int max_fill_depth = scale;
     //---SLOPE---
     /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH &&  count < obstacle_particle_count; i+= frequency) {
@@ -482,7 +481,8 @@ void Simulation::print_debug_info() {
     println("-----------------Debug-----------------");
 
     //Avg Error
-    println("Avg. Error: " << error_sum / simulation_size);
+    //println("Avg. Error: " << error_sum / simulation_size);
+    println("Avg. Error: " << (error_sum / simulation_size) - target_density);
     //Avg Density
     println("Avg. Density: " << density_sum / simulation_size);
 

@@ -151,7 +151,8 @@ private:
 		file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         try
         {
-            file.open(path);
+            std::string full_path = std::filesystem::current_path().string() + "\\Code\\Rendering\\Shaders\\" + path;
+            file.open(full_path);
 
             std::stringstream stream;
             stream << file.rdbuf();

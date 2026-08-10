@@ -8,11 +8,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Shaders.h"
+#include "Shaders/Shaders.h"
 #include "BufferObject.h"
 #include "VertexArrayObject.h"
-#include "Particle.h"
-#include "Simulation.h"
+#include "../Simulation/Particle.h"
+#include "../Simulation/Simulation.h"
 
 #define println(x) std::cout << x << std::endl
 

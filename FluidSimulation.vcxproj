@@ -128,7 +128,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BufferObject.h" />
+    <ClInclude Include="Code\Rendering\BufferObject.h" />
+    <ClInclude Include="Code\Simulation\Kernels.h" />
+    <ClInclude Include="Code\Simulation\Particle.h" />
+    <ClInclude Include="Code\Rendering\Rendering.h" />
+    <ClInclude Include="Code\Rendering\VertexArrayObject.h" />
+    <ClInclude Include="Code\Rendering\Shaders\Shaders.h" />
+    <ClInclude Include="Code\Simulation\Simulation.h" />
     <ClInclude Include="dependencies\include\glad\glad.h" />
     <ClInclude Include="dependencies\include\GLFW\glfw3.h" />
     <ClInclude Include="dependencies\include\GLFW\glfw3native.h" />
@@ -421,15 +427,14 @@
     <ClInclude Include="dependencies\include\glm\vector_relational.hpp" />
     <ClInclude Include="dependencies\include\KHR\khrplatform.h" />
     <ClInclude Include="dependencies\include\stb_image.h" />
-    <ClInclude Include="Kernels.cpp" />
-    <ClInclude Include="Kernels.h" />
-    <ClInclude Include="Rendering.h" />
-    <ClInclude Include="Particle.h" />
-    <ClInclude Include="Shaders.h" />
-    <ClInclude Include="Simulation.h" />
-    <ClInclude Include="VertexArrayObject.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".gitattributes" />
+    <None Include=".gitignore" />
+    <None Include="Code\Rendering\Shaders\FragmentShader.frag" />
+    <None Include="Code\Rendering\Shaders\GeometryShader.geom" />
+    <None Include="Code\Rendering\Shaders\PrimitiveShader.frag" />
+    <None Include="Code\Rendering\Shaders\VertexShader.vert" />
     <None Include="dependencies\include\glm\detail\func_common.inl" />
     <None Include="dependencies\include\glm\detail\func_common_simd.inl" />
     <None Include="dependencies\include\glm\detail\func_exponential.inl" />
@@ -568,19 +573,16 @@
     <None Include="dependencies\include\glm\gtx\vector_angle.inl" />
     <None Include="dependencies\include\glm\gtx\vector_query.inl" />
     <None Include="dependencies\include\glm\gtx\wrap.inl" />
-    <None Include="FragmentShader.frag" />
-    <None Include="GeometryShader.geom" />
-    <None Include="PrimitiveShader.frag" />
-    <None Include="VertexShader.vert" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Code\Rendering\Shaders\glad.c" />
+    <ClCompile Include="Code\Simulation\Kernels.cpp" />
+    <ClCompile Include="Code\Main.cpp" />
+    <ClCompile Include="Code\Rendering\Rendering.cpp" />
+    <ClCompile Include="Code\Simulation\Simulation.cpp" />
     <ClCompile Include="dependencies\include\glm\detail\glm.cpp" />
     <ClCompile Include="dependencies\include\glm\glm.cppm" />
-    <ClCompile Include="glad.c" />
-    <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Rendering.cpp" />
-    <ClCompile Include="Simulation.cpp" />
-    <ClCompile Include="Kernels.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="dependencies\lib\glfw3.lib" />

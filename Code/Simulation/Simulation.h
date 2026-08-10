@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <random>
-#include "Rendering.h"
+#include "../Rendering/Rendering.h"
 #include "Particle.h"
 #include "Kernels.h"
 #include <omp.h>
@@ -17,6 +17,7 @@ static const int hashK2 = 8000011;
 class Simulation
 {
 public:
+    static constexpr float PIXELS_PER_METER = 100.0f;
     static constexpr float BASE_PARTICLE_RADIUS = 16.0f;
     static constexpr float BASE_SMOOTHING_RADIUS = 50.0f;
     static constexpr float BASE_TARGET_DENSITY = 6.9f;

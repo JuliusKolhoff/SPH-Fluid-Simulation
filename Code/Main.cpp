@@ -1,7 +1,7 @@
 #include <iostream>
 #include<glad/glad.h>
 #include<GLFW/glfw3.h>
-#include"Rendering.h"
+#include"Rendering/Rendering.h"
 
 #define check(x) if(x != 0){return -1;}
 

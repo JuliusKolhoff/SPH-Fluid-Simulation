@@ -391,7 +391,7 @@ void Simulation::random_particles() {
 void Simulation::create_obstacles() {
     int count = 0;
     float frequency = 1.0f;
-    bool  fill = false;
+    bool  fill = true;
     int max_fill_depth = scale;
     //---SLOPE---
     /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH &&  count < obstacle_particle_count; i+= frequency) {
@@ -417,7 +417,7 @@ void Simulation::create_obstacles() {
 
 
     //---SPIKE---
-    float height = 400;
+    /*float height = 400;
     float x = -particle_radius, y = particle_radius - (height / (SCR_WIDTH / 2)) * particle_radius;
     for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH + particle_radius && count < obstacle_particle_count; i += frequency) {
         x += particle_radius;
@@ -446,7 +446,7 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].movable = false;
             count++;
         }
-    }
+    }*/
     obstacle_particle_count = count;
 
     //for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH; i += 2) {

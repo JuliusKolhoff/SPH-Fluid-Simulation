@@ -15,6 +15,7 @@ std::vector<float> primitive_vertices;
 //};
 bool run_simulation = false;
 
+glm::mat4 view;
 
 int Rendering::start(GLFWwindow* window) {
     glfwMakeContextCurrent(window);
@@ -36,6 +37,21 @@ int Rendering::start(GLFWwindow* window) {
 
     //----
 	Simulation::get_instance().create_particles();
+
+    //3d
+
+    view = glm::mat4(1.0f);
+    // note that we're translating the scene in the reverse direction of where we want to move
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+    glm::mat4 model;
+    model = glm::mat4(1.0f);
+
+
+
 
     Shader primitive_shader("VertexShader.vert", "PrimitiveShader.frag");
     primitive_shader.Use();
@@ -59,6 +75,9 @@ int Rendering::start(GLFWwindow* window) {
     shader.setBool("u_render_complex", Simulation::get_instance().render_complex);
     shader.setFloat("u_radius_increase", Simulation::get_instance().radius_increase);
     shader.setFloat("u_pixels_per_meter", Simulation::PIXELS_PER_METER);
+    shader.setMat4("model",model);
+    shader.setMat4("view",view);
+    shader.setMat4("projection",projection);
 
     VertexArrayObject vao;
     
@@ -87,7 +106,7 @@ int Rendering::start(GLFWwindow* window) {
         lastFrame = currentFrame;
 
 		//std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
-        
+        shader.setMat4("view", view);
         //Simulation Step
         if (run_simulation) {
             Simulation::get_instance().step(deltaTime,window);
@@ -101,24 +120,30 @@ int Rendering::start(GLFWwindow* window) {
         /*----------------------------------------------------------Draw Patricles--------------------------------------------------------------------------*/
         //Update Vertex Data
         Simulation::get_instance().update_vertex_data(&vertices);
-        
-		vbo.Bind();
-		//glBufferData(GL_ARRAY_BUFFER, Simulation::get_instance().particles.size() * sizeof(Particle), Simulation::get_instance().particles.data(), GL_DYNAMIC_DRAW);
-		glBufferData(GL_ARRAY_BUFFER,vertices.size() * sizeof(GLfloat), vertices.data(), GL_DYNAMIC_DRAW);
+        for (int i = 0; i < 20; i++) {
+            for (size_t i = 0; i < Simulation::get_instance().simulation_size + Simulation::get_instance().obstacle_particle_count; i++)
+            {
+                vertices[2 + i * 3] += 1.0f;
+            }
+            vbo.Bind();
+            //glBufferData(GL_ARRAY_BUFFER, Simulation::get_instance().particles.size() * sizeof(Particle), Simulation::get_instance().particles.data(), GL_DYNAMIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_DYNAMIC_DRAW);
 
-        // input
-        processInput(window);
-        shader.setVec2("u_mousePos", mouse_xpos, mouse_ypos);
-        
-        shader.Use();
-        vao.Bind();
-        bool draw_obstacles = true;
-        if (draw_obstacles) {
-            glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size + Simulation::get_instance().obstacle_particle_count);
+            // input
+            processInput(window);
+            shader.setVec2("u_mousePos", mouse_xpos, mouse_ypos);
+
+            shader.Use();
+            vao.Bind();
+            bool draw_obstacles = true;
+            if (draw_obstacles) {
+                glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size + Simulation::get_instance().obstacle_particle_count);
+            }
+            else {
+                glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
+            }
         }
-        else {
-            glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size);
-        }
+		
 
         /*----------------------------------------------------------Draw Primitives--------------------------------------------------------------------------*/
         /*primitive_vertices.clear();
@@ -161,10 +186,12 @@ void Rendering::processInput(GLFWwindow* window)
         glfwSetWindowShouldClose(window, true);
 
     cooldown--;
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { Simulation::get_instance().k += 0.1f;};
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { Simulation::get_instance().k -= 0.1f; };
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { Simulation::get_instance().target_density += 0.1; };
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { Simulation::get_instance().target_density -= 0.1; };
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.1f));/*Simulation::get_instance().k += 0.1f;*/};
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.1f));/*Simulation::get_instance().k -= 0.1f; */};
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { view = glm::translate(view, glm::vec3(0.1f, 0.0f, 0.0f));/*Simulation::get_instance().target_density += 0.1; */};
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { view = glm::translate(view, glm::vec3(-0.1f, 0.0f, 0.0f));/*Simulation::get_instance().target_density -= 0.1;*/ };
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) { view = glm::translate(view, glm::vec3(0.0f, -0.1f, 0.0f));/*Simulation::get_instance().target_density += 0.1; */ };
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) { view = glm::translate(view, glm::vec3(0.0f, 0.1f, 0.0f));/*Simulation::get_instance().target_density -= 0.1;*/ };
     if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS &&  cooldown <= 0) {
         cooldown = 30;
         run_simulation = !run_simulation;

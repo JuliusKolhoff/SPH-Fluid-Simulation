@@ -18,12 +18,12 @@ class Simulation
 {
 public:
 
-    static constexpr float PIXELS_PER_METER = 50;
+    static constexpr float PIXELS_PER_METER = 100;
 
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 1200;
-    unsigned int obstacle_particle_count = 250;
+    unsigned int simulation_size = 300;
+    unsigned int obstacle_particle_count = 1000;
 
     float step_size = 0.01f;
 
@@ -32,18 +32,26 @@ public:
     float k = 10;
     float viscosity = 1.0f;
     float gravity = 6;*/
-    float smoothing_radius = 0.7f;
+
+    /*float smoothing_radius = 0.7f;
     float target_density = 4.0f; 
     float k = 25.0f;
     float viscosity = 2.5f;
-    float gravity = 9.8f;
+    float gravity = 9.8f;*/
+
+    //float particle_radius = 0.14f;
+    float smoothing_radius = 0.57f;   
+    float target_density = 6.0f;   
+    float k = 38.0f;  
+    float viscosity = 3.5f;
+    float gravity = 5.0f;
     
     
     bool right_mouse_down = false;
     vec3 force_point = vec3(0);
 
     //Crude Rendering Improvement
-    bool render_complex = true;
+    bool render_complex = false;
     float radius_increase = 4.0f;
     //float radius_increase = 10.0f;
 

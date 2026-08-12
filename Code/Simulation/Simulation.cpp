@@ -25,7 +25,9 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
         
         /*float ratio = p.density / target_density;
         p.color = vec3(1.0f - ratio,1.0f  - ratio, 1.0f);*/
-        sum += p.density;
+        if (p.movable) {
+            sum += p.density;
+        }
     }
     density_sum = sum;
 #pragma omp parallel for schedule(static)
@@ -75,7 +77,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             vec2 externalForces = vec2(0);
             float range = 3;
             //float force = k * 0.05f;
-            float force = -k * 0.05f;
+            float force = -k * 0.01f;
             if (right_mouse_down)
             {
                 force_point = vec3(x, y, 0.0f);
@@ -417,7 +419,41 @@ void Simulation::create_obstacles() {
         }
     }
 
+    //---BOUNDS---
+    float x = 0,y = 0;
+    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH / PIXELS_PER_METER && count < obstacle_particle_count; i += frequency*2) {
+        x = i * particle_radius;
+        y = -particle_radius;
+        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+        particles[simulation_size + count].color = obstacle_color;
+        particles[simulation_size + count].movable = false;
+        particles[simulation_size + count].velocity = vec3(0,-0.1f,0);
+        count++;
 
+        y = SCR_HEIGHT / PIXELS_PER_METER + particle_radius;
+        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+        particles[simulation_size + count].color = obstacle_color;
+        particles[simulation_size + count].movable = false;
+        particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
+        count++;
+    }
+    for (unsigned int j = 0; j * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; j += frequency*2) {
+        x = -particle_radius;
+        y = j * particle_radius;
+        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+        particles[simulation_size + count].color = obstacle_color;
+        particles[simulation_size + count].movable = false;
+        particles[simulation_size + count].velocity = vec3(0.1f, 0, 0);
+        count++;
+
+        x = SCR_WIDTH / PIXELS_PER_METER + particle_radius;
+        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+        particles[simulation_size + count].color = obstacle_color;
+        particles[simulation_size + count].movable = false;
+        particles[simulation_size + count].velocity = vec3(-0.1f, 0, 0);
+        count++;
+
+    }
     //---SPIKE---
     /*float height = 400;
     float x = -particle_radius, y = particle_radius - (height / (SCR_WIDTH / 2)) * particle_radius;

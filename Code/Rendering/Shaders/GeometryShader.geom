@@ -11,6 +11,10 @@ uniform bool u_render_complex;
 uniform float u_radius_increase;
 
 uniform float u_pixels_per_meter;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
    
 
 in vec3 Color[];
@@ -28,19 +32,23 @@ void main(){
 		radius *= u_radius_increase;
 	}
 
-	gl_Position = gl_in[0].gl_Position + vec4(radius * vec2(-1.0f,-1.0f),0,0);
+	vec4 pos = gl_in[0].gl_Position + vec4(radius * vec2(-1.0f,-1.0f),0,0);
+	gl_Position = projection * view * model * pos;
 	gTexCoord = vec2(0f,0f);
 	EmitVertex();
 
-	gl_Position = gl_in[0].gl_Position + vec4(radius * vec2(-1.0f,1.0f),0,0);
+	pos = gl_in[0].gl_Position + vec4(radius * vec2(-1.0f,1.0f),0,0);
+	gl_Position = projection * view * model * pos;
 	gTexCoord = vec2(0,1.0f);
 	EmitVertex();
 
-	gl_Position = gl_in[0].gl_Position + vec4(radius * vec2(1.0f,-1.0f),0,0);
+	pos = gl_in[0].gl_Position + vec4(radius * vec2(1.0f,-1.0f),0,0);
+	gl_Position =projection * view * model * pos;
 	gTexCoord = vec2(1.0f,0);
 	EmitVertex();
 
-	gl_Position = gl_in[0].gl_Position + vec4(radius * vec2(1.0f,1.0f),0,0);
+	pos = gl_in[0].gl_Position + vec4(radius * vec2(1.0f,1.0f),0,0);
+	gl_Position = projection * view * model * pos;
 	gTexCoord = vec2(1.0f,1.0f);
 	EmitVertex();
 }

@@ -17,34 +17,34 @@ static const int hashK2 = 8000011;
 class Simulation
 {
 public:
-    static constexpr float PIXELS_PER_METER = 100.0f;
-    static constexpr float BASE_PARTICLE_RADIUS = 16.0f;
-    static constexpr float BASE_SMOOTHING_RADIUS = 50.0f;
-    static constexpr float BASE_TARGET_DENSITY = 6.9f;
-    static constexpr unsigned int BASE_SIZE = 300;
-    static constexpr unsigned int BASE_OBSTACLE_COUNT = 250;
 
-    float scale = 1.0f;
+    static constexpr float PIXELS_PER_METER = 50;
 
-    float particle_radius = BASE_PARTICLE_RADIUS;
-    float smoothing_radius = BASE_SMOOTHING_RADIUS;
-    float target_density = BASE_TARGET_DENSITY;
-    unsigned int simulation_size = BASE_SIZE;
-    unsigned int obstacle_particle_count = BASE_OBSTACLE_COUNT;
+
+    float particle_radius = 0.16f;
+    unsigned int simulation_size = 1200;
+    unsigned int obstacle_particle_count = 250;
 
     float step_size = 0.01f;
-    /*float k = 40.0f;
-    float viscosity = 15;*/
-    float k = 1280.0f;
-    float viscosity = 60.0f;
-    float gravity = 60.0f;
 
+    /*float target_density = 6.0f;
+    float smoothing_radius = 0.5f;
+    float k = 10;
+    float viscosity = 1.0f;
+    float gravity = 6;*/
+    float smoothing_radius = 0.7f;
+    float target_density = 4.0f; 
+    float k = 25.0f;
+    float viscosity = 2.5f;
+    float gravity = 9.8f;
+    
+    
     bool right_mouse_down = false;
     vec3 force_point = vec3(0);
 
     //Crude Rendering Improvement
     bool render_complex = true;
-    float radius_increase = 7.0f;
+    float radius_increase = 4.0f;
     //float radius_increase = 10.0f;
 
     //Manager
@@ -54,22 +54,6 @@ public:
     Particle *particles = nullptr;
     std::pair<int, int> *spatial_lookup = nullptr;
     int *start_indices = nullptr;
-
-    void apply_scale(float new_scale) {
-        scale = new_scale;
-        particle_radius = BASE_PARTICLE_RADIUS / scale;
-        smoothing_radius = BASE_SMOOTHING_RADIUS / scale;
-        target_density = BASE_TARGET_DENSITY * scale * scale;
-        simulation_size = static_cast<unsigned int>(BASE_SIZE * scale * scale);
-        obstacle_particle_count = BASE_OBSTACLE_COUNT * scale * scale;
-        // Arrays neu allozieren
-        delete[] particles;
-        delete[] spatial_lookup;
-        delete[] start_indices;
-        particles = new Particle[simulation_size + obstacle_particle_count];
-        spatial_lookup = new std::pair<int, int>[simulation_size + obstacle_particle_count];
-        start_indices = new int[simulation_size + obstacle_particle_count];
-    }
 
 private:
     //debug
@@ -84,9 +68,9 @@ private:
     static Simulation* instance;
 
     Simulation(){
-        /*particles = new Particle[simulation_size];
-        spatial_lookup = new std::pair<int, int>[simulation_size];
-        start_indices = new int[simulation_size];*/
+        particles = new Particle[simulation_size + obstacle_particle_count];
+        spatial_lookup = new std::pair<int, int>[simulation_size + obstacle_particle_count];
+        start_indices = new int[simulation_size + obstacle_particle_count];
     };
     glm::vec<2, int> cell_offsets[9] =
     {
@@ -104,7 +88,6 @@ public:
     static Simulation& get_instance() {
         if (instance == nullptr) {
             instance = new Simulation();
-            instance->apply_scale(2.0f);
         }
         return *instance;
     }

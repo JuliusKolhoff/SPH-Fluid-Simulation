@@ -58,6 +58,7 @@ int Rendering::start(GLFWwindow* window) {
     shader.setFloat("u_radius", Simulation::get_instance().particle_radius);
     shader.setBool("u_render_complex", Simulation::get_instance().render_complex);
     shader.setFloat("u_radius_increase", Simulation::get_instance().radius_increase);
+    shader.setFloat("u_pixels_per_meter", Simulation::PIXELS_PER_METER);
 
     VertexArrayObject vao;
     
@@ -256,3 +257,4 @@ void Rendering::scroll_callback(GLFWwindow* window, double xoffset, double yoffs
 {
     //camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
+

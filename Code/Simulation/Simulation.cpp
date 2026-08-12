@@ -9,9 +9,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
         v_max = max(v_max, length(vec2(particles[i].velocity)));
 
     const float lambda = 0.4f;
-    const float h_px = smoothing_radius;   // kernel radius in screen px
-
-    step_size = lambda * h_px / v_max;
+    step_size = lambda * smoothing_radius / v_max;
     //step_size = min(step_size, delta_time);
     step_size = min(step_size, 0.016f); // safety
     update_spacial_lookup();
@@ -44,6 +42,8 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     double x, y;//Mouse POs
     glfwGetCursorPos(window, &x, &y);
     y = SCR_HEIGHT - y;
+    x /= PIXELS_PER_METER;
+    y /= PIXELS_PER_METER;
 #pragma omp parallel for schedule(dynamic, 32)
     for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
     {
@@ -64,7 +64,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             //p.color = vec3(ratio, ratio, 1.0f);
             //COlor Coading
             float speed = length(vec2(p.velocity));
-            float max_speed = 600.0f;
+            float max_speed = 15.0f;
             float t = clamp(speed / max_speed, 0.0f, 1.0f); 
             //blue (slow) -> cyan -> white (fast)
             vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
@@ -73,7 +73,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             p.color = mix(slow_color, fast_color, t);
 
             vec2 externalForces = vec2(0);
-            float range = 100;
+            float range = 3;
             //float force = k * 0.05f;
             float force = -k * 0.05f;
             if (right_mouse_down)
@@ -114,7 +114,7 @@ float Simulation::calculate_pressure(Particle& particle_i) {
     /*float  pressure = particle_i.density - (*instance).target_density;
     return k * max(0.0f,pressure);*/
     float  pressure = particle_i.density / (*instance).target_density;
-    return max(-INFINITY, k * (powf(pressure, 7.0f) - 1.0f));
+    return max(0.0f, k * (powf(pressure, 7.0f) - 1.0f));
 }
 
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers  /  Page 4 Eqation(12)
@@ -226,8 +226,8 @@ void Simulation::handle_collisions(Particle& particle)
         pos.x = 0;
         vel.x *= -1 * collisionDamping;
     }
-    if (pos.x >= SCR_WIDTH) {
-        pos.x = SCR_WIDTH;
+    if (pos.x >= (SCR_WIDTH / PIXELS_PER_METER)) {
+        pos.x = (SCR_WIDTH / PIXELS_PER_METER);
         vel.x *= -1 * collisionDamping;
     }
 
@@ -236,8 +236,8 @@ void Simulation::handle_collisions(Particle& particle)
         pos.y = 0;
         vel.y *= -1 * collisionDamping;
     }
-    if (pos.y >= SCR_HEIGHT) {
-        pos.y = SCR_HEIGHT;
+    if (pos.y >= (SCR_HEIGHT / PIXELS_PER_METER)) {
+        pos.y = (SCR_HEIGHT / PIXELS_PER_METER);
         vel.y *= -1 * collisionDamping;
     }
 
@@ -359,13 +359,15 @@ void Simulation::create_particles(){
     float block_w = cols * diameter;
     float block_h = rows * diameter;
 
-    // Centre 
-    float start_x = (SCR_WIDTH - block_w) / 2.0f + particle_radius;
-    float start_y = (SCR_HEIGHT - block_h) / 2.0f + particle_radius;
-    start_y = (SCR_HEIGHT - block_h);
-    start_y = glm::max(particle_radius, start_y);
+    //Centre 
+    float start_x = ((SCR_WIDTH/PIXELS_PER_METER) - block_w) / 2.0f + particle_radius;
+    float start_y = ((SCR_HEIGHT/PIXELS_PER_METER) - block_h) / 2.0f + particle_radius;
+   // start_y = (SCR_HEIGHT - block_h);
+    //start_y = glm::max(particle_radius, start_y);
 
-    //start_x = 0;
+
+    //start_x = -block_w/2;
+    //start_y = -block_h/2;
 
     for (unsigned int i = 0; i < simulation_size; i++) {
         particles[i].pos.x = start_x + (i % cols) * diameter;
@@ -379,8 +381,8 @@ void Simulation::create_particles(){
 void Simulation::random_particles() {
     srand(time(0));
     for (unsigned int i = 0; i < simulation_size; i++) {
-        particles[i].pos.x = ((float)rand() / RAND_MAX) * SCR_WIDTH;
-        particles[i].pos.y = ((float)rand() / RAND_MAX) * SCR_HEIGHT;
+        particles[i].pos.x = ((float)rand() / RAND_MAX) * ((SCR_WIDTH / PIXELS_PER_METER) / 2);
+        particles[i].pos.y = ((float)rand() / RAND_MAX) * ((SCR_HEIGHT / PIXELS_PER_METER) / 2);
         particles[i].color = base_particle_color;
     }
     create_obstacles();
@@ -392,14 +394,14 @@ void Simulation::create_obstacles() {
     int count = 0;
     float frequency = 1.0f;
     bool  fill = true;
-    int max_fill_depth = scale;
+    int max_fill_depth = 2;
     //---SLOPE---
-    /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH &&  count < obstacle_particle_count; i+= frequency) {
+    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
         float x = i * particle_radius;
-        float y = (SCR_HEIGHT / 2) - (i / 2.0f) * particle_radius;
+        float y = ((SCR_HEIGHT/PIXELS_PER_METER) / 2) - (i / 2.0f) * particle_radius;
         if (y < 0) break;
         if (fill) {
-            for (int j = 0; y > 0 && count < obstacle_particle_count;j++) {
+            for (int j = 0; y > 0 && count < obstacle_particle_count && j < max_fill_depth;j++) {
                 y -= frequency * particle_radius;
                 particles[simulation_size + count].pos = vec3(x, y, 0.0f);
                 particles[simulation_size + count].color = obstacle_color;
@@ -413,7 +415,7 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].movable = false;
             count++;
         }
-    }*/
+    }
 
 
     //---SPIKE---
@@ -473,7 +475,7 @@ void Simulation::create_obstacles() {
     // }
 }
 void Simulation::sample_at_point(vec3 pos) {
-    sample_point = pos;
+    sample_point = pos/PIXELS_PER_METER;
     print_debug_info();
 
 }
@@ -482,7 +484,7 @@ void Simulation::print_debug_info() {
 
     //Avg Error
     //println("Avg. Error: " << error_sum / simulation_size);
-    println("Avg. Error: " << (error_sum / simulation_size) - target_density);
+    println("Avg. Error: " << (density_sum / simulation_size) - target_density);
     //Avg Density
     println("Avg. Density: " << density_sum / simulation_size);
 
@@ -504,7 +506,7 @@ void Simulation::print_debug_info() {
             for (int s = start; s < simulation_size; ++s) {
                 if (spatial_lookup[s].second != key) break;
                 Particle& p2 = particles[spatial_lookup[s].first];
-                if (&p != &p2 && distance(p.pos, p2.pos) < particle_radius/(3*scale)) duplicates++;
+                if (&p != &p2 && distance(p.pos, p2.pos) < particle_radius/3) duplicates++;
             }
         }
     }

@@ -9,6 +9,8 @@ uniform float u_radius;
 uniform vec2 u_resolution;
 uniform bool u_render_complex;
 uniform float u_radius_increase;
+
+uniform float u_pixels_per_meter;
    
 
 in vec3 Color[];
@@ -21,8 +23,7 @@ void main(){
 
 	oColor = Color[0];
 	//*2 => Same as Vertex shader
-	//vec2 radius = vec2(u_radius* u_pixels_per_meter*2,u_radius * u_pixels_per_meter * 2)/u_resolution;
-	vec2 radius = vec2(u_radius,u_radius)/u_resolution;
+	vec2 radius = vec2(u_radius* u_pixels_per_meter*2,u_radius * u_pixels_per_meter * 2)/u_resolution;
 	if(u_render_complex){
 		radius *= u_radius_increase;
 	}

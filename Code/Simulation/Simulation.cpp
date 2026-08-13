@@ -64,7 +64,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             //p.color = vec3(ratio, ratio, 1.0f);
             //COlor Coading
             float speed = length(vec2(p.velocity));
-            float max_speed = 15.0f;
+            float max_speed = 45.0f;
             float t = clamp(speed / max_speed, 0.0f, 1.0f); 
             //blue (slow) -> cyan -> white (fast)
             vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
@@ -396,7 +396,7 @@ void Simulation::create_obstacles() {
     bool  fill = true;
     int max_fill_depth = 2;
     //---SLOPE---
-    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
+    /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
         float x = i * particle_radius;
         float y = ((SCR_HEIGHT/PIXELS_PER_METER) / 2) - (i / 2.0f) * particle_radius;
         if (y < 0) break;
@@ -415,7 +415,7 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].movable = false;
             count++;
         }
-    }
+    }*/
 
 
     //---SPIKE---

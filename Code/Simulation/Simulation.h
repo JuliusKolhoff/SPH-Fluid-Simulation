@@ -32,13 +32,25 @@ public:
     float k = 10;
     float viscosity = 1.0f;
     float gravity = 6;*/
-    float smoothing_radius = 0.7f;
-    float target_density = 4.0f; 
+
+    //float smoothing_radius = 0.7f;
+    /*float target_density = 4.0f;
     float k = 25.0f;
     float viscosity = 2.5f;
-    float gravity = 9.8f;
+    float gravity = 9.8f;*/
     
-    
+    /*float smoothing_radius = 0.5f;
+    float target_density = 9.0f;
+    float k = 30.0f;
+    float viscosity = 3.0f;
+    float gravity = 9.81f;*/
+
+    float smoothing_radius = 0.5f;
+    float target_density = 9.0f;   // war 6.0f
+    float k = 35.0f;               // war 10.0f
+    float viscosity = 1.5f;        // war 1.0f
+    float gravity = 6.0f;          // unverändert
+
     bool right_mouse_down = false;
     vec3 force_point = vec3(0);
 

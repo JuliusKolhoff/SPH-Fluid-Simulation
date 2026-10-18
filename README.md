@@ -4,6 +4,8 @@ A real-time, 2D **Smoothed Particle Hydrodynamics (SPH)** fluid simulation writt
 
 The SPH formulation follows *"A Survey on SPH Methods in Computer Graphics"* (Koschier et al.); the relevant sections are referenced in the source comments.
 
+<img width="910" height="730" alt="image" src="https://github.com/user-attachments/assets/8571f1c2-020e-45e9-bd55-b9e462347cf2" />
+
 ## Features
 
 - **Weakly compressible SPH** 

@@ -43,12 +43,10 @@ int Rendering::start(GLFWwindow* window) {
 
     glm::mat4 projection;
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    
 
     glm::mat4 model;
     model = glm::mat4(1.0f);
-
-
-
 
     Shader primitive_shader("VertexShader.vert", "PrimitiveShader.frag");
     primitive_shader.Use();
@@ -107,8 +105,10 @@ int Rendering::start(GLFWwindow* window) {
         processInput(window,deltaTime);
         shader.setVec2("u_mousePos", mouse_xpos, mouse_ypos);
 
-        //update view
+        //update view and cameraPOs uniforms
         shader.setMat4("view", camera.GetViewMatrix());
+        shader.setVec3("u_camera_up", camera.Up);
+        shader.setVec3("u_camera_right", camera.Right);
         
         
         //Simulation Step
@@ -222,8 +222,6 @@ void Rendering::mouse_button_callback(GLFWwindow* window, int button, int action
 
 void Rendering::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
-
-
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 

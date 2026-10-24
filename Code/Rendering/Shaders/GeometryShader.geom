@@ -15,6 +15,9 @@ uniform float u_pixels_per_meter;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+
+uniform vec3 u_camera_up;
+uniform vec3 u_camera_right;
    
 
 in vec3 Color[];
@@ -26,29 +29,20 @@ out vec2 gTexCoord;
 void main(){
 
 	oColor = Color[0];
-	//*2 => Same as Vertex shader
-	vec2 radius = vec2(u_radius* u_pixels_per_meter*2,u_radius * u_pixels_per_meter * 2)/u_resolution;
-	if(u_render_complex){
-		radius *= u_radius_increase;
-	}
 
-	vec4 pos = gl_in[0].gl_Position + vec4(radius * vec2(-1.0f,-1.0f),0,0);
-	gl_Position = projection * view * model * pos;
-	gTexCoord = vec2(0f,0f);
-	EmitVertex();
+    float perspective_correction = 5.0f;
 
-	pos = gl_in[0].gl_Position + vec4(radius * vec2(-1.0f,1.0f),0,0);
-	gl_Position = projection * view * model * pos;
-	gTexCoord = vec2(0,1.0f);
-	EmitVertex();
+	float r = perspective_correction * u_radius * u_pixels_per_meter * 2.0 / u_resolution.y;
+    if (u_render_complex) r *= u_radius_increase;
 
-	pos = gl_in[0].gl_Position + vec4(radius * vec2(1.0f,-1.0f),0,0);
-	gl_Position =projection * view * model * pos;
-	gTexCoord = vec2(1.0f,0);
-	EmitVertex();
+    vec3 right = normalize(u_camera_right) * r;
+    vec3 up    = normalize(u_camera_up)    * r;
 
-	pos = gl_in[0].gl_Position + vec4(radius * vec2(1.0f,1.0f),0,0);
-	gl_Position = projection * view * model * pos;
-	gTexCoord = vec2(1.0f,1.0f);
-	EmitVertex();
+    vec3 c = gl_in[0].gl_Position.xyz;
+    mat4 mvp = projection * view * model;
+
+    gl_Position = mvp * vec4(c - right - up, 1.0); gTexCoord = vec2(0,0); EmitVertex();
+    gl_Position = mvp * vec4(c - right + up, 1.0); gTexCoord = vec2(0,1); EmitVertex();
+    gl_Position = mvp * vec4(c + right - up, 1.0); gTexCoord = vec2(1,0); EmitVertex();
+    gl_Position = mvp * vec4(c + right + up, 1.0); gTexCoord = vec2(1,1); EmitVertex();
 }

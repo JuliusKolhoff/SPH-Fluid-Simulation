@@ -23,4 +23,4 @@ void main()
         alpha = smoothing_kernel(distance(uv,vec2(0.5f,0.5f))*2);
     }
     FragColor = vec4(oColor,alpha);
-}
+    }

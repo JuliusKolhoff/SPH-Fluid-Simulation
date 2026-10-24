@@ -91,7 +91,7 @@ int Rendering::start(GLFWwindow* window) {
     glBindVertexArray(0);
 
     
-    
+    float timer = 120;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -99,7 +99,11 @@ int Rendering::start(GLFWwindow* window) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-		//std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+        if (timer == 0) {
+		    std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+            timer = 120;
+        }
+        timer--;
 
         // input
         processInput(window,deltaTime);

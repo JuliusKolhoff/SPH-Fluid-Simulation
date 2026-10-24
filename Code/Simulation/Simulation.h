@@ -39,7 +39,7 @@ public:
     vec3 force_point = vec3(0);
 
     //Crude Rendering Improvement
-    bool render_complex = true;
+    bool render_complex = false;
     float radius_increase = 4.0f;
     //float radius_increase = 10.0f;
 

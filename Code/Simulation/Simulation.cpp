@@ -366,8 +366,7 @@ void Simulation::create_particles(){
     //start_y = glm::max(particle_radius, start_y);
 
 
-    //start_x = -block_w/2;
-    //start_y = -block_h/2;
+    start_x = block_w;
 
     for (unsigned int i = 0; i < simulation_size; i++) {
         particles[i].pos.x = start_x + (i % cols) * diameter;
@@ -396,7 +395,7 @@ void Simulation::create_obstacles() {
     bool  fill = true;
     int max_fill_depth = 2;
     //---SLOPE---
-    /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
+    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
         float x = i * particle_radius;
         float y = ((SCR_HEIGHT/PIXELS_PER_METER) / 2) - (i / 2.0f) * particle_radius;
         if (y < 0) break;
@@ -415,11 +414,11 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].movable = false;
             count++;
         }
-    }*/
+    }
 
 
     //---SPIKE---
-    /*float height = 400;
+    /*float height = 100;
     float x = -particle_radius, y = particle_radius - (height / (SCR_WIDTH / 2)) * particle_radius;
     for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH + particle_radius && count < obstacle_particle_count; i += frequency) {
         x += particle_radius;

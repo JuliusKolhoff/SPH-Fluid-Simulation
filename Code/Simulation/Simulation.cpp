@@ -6,7 +6,7 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     // CFL condition A Survey Sec.2.9:
     float v_max = 1.0f;   // avoid div/0
     for (int i = 0; i < simulation_size; ++i)
-        v_max = max(v_max, length(vec2(particles[i].velocity)));
+        v_max = max(v_max, length(vec3(particles[i].velocity)));
 
     const float lambda = 0.4f;
     step_size = lambda * smoothing_radius / v_max;
@@ -51,21 +51,21 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     {
         Particle& p = particles[i];
         if (p.movable) {
-            vec2 accel = calculate_pressue_acceleration(p);
-            accel += vec2(0, -gravity);
+            vec3 accel = calculate_pressue_acceleration(p);
+            accel += vec3(0, -gravity,0);
             //p.velocity += vec3(0, -10.0f,0);    // gravity
-            p.velocity += vec3(accel, 0.0f) * step_size;
+            p.velocity += accel * step_size;
             p.velocity += calculate_viscosity_force(p) * step_size;
             //p.velocity *= 0.99f;
             
             
-           /* float speed = length(vec2(p.velocity));
+           /* float speed = length(vec3(p.velocity));
             float v_max = 1000.0f;
             float ratio = clamp(speed / v_max, 0.0f, 1.0f);
             ratio /= 2;*/
             //p.color = vec3(ratio, ratio, 1.0f);
             //COlor Coading
-            float speed = length(vec2(p.velocity));
+            float speed = length(vec3(p.velocity));
             float max_speed = 15.0f;
             float t = clamp(speed / max_speed, 0.0f, 1.0f); 
             //blue (slow) -> cyan -> white (fast)
@@ -74,23 +74,8 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
             //vec3 fast_color = vec3(0.9f, 0.5f, 0.5f);
             p.color = mix(slow_color, fast_color, t);
 
-            vec2 externalForces = vec2(0);
-            float range = 3;
-            //float force = k * 0.05f;
-            float force = -k * 0.01f;
-            if (right_mouse_down)
-            {
-                force_point = vec3(x, y, 0.0f);
-                vec2 moveToMouse = force_point - p.pos;
-                if (length(moveToMouse) < range)
-                {
-                    /*if (Input.GetMouseButton(1))
-                    {
-                        moveToMouse *= -1;
-                    }*/
-                    p.velocity += vec3((moveToMouse/length(moveToMouse)) * force,0.0f);
-                }
-            }
+            vec2 externalForces = vec3(0);
+            
         }
     }
     
@@ -120,29 +105,28 @@ float Simulation::calculate_pressure(Particle& particle_i) {
 }
 
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers  /  Page 4 Eqation(12)
-vec2 Simulation::calculate_pressure_gradient(Particle& particle_i) {
-    vec2 pressure_gradient(0.0f);
+vec3 Simulation::calculate_pressure_gradient(Particle& particle_i) {
+    vec3 pressure_gradient(0.0f);
     if (particle_i.movable) {
         vec3 result = do_for_each_neighbour<vec3>(particle_i, &Simulation::calculate_pressure_contribution);
-        //error_sum += result.z;
-        pressure_gradient = vec2(result.x, result.y);
+        pressure_gradient = result;
     }
-    return vec2(pressure_gradient);
+    return vec3(pressure_gradient);
 }
 vec3 Simulation::calculate_pressure_contribution(Particle& particle_i, Particle& particle_j) {
-    float r = distance(vec2(particle_i.pos), vec2(particle_j.pos));
+    float r = distance(vec3(particle_i.pos), vec3(particle_j.pos));
     if (r < 1e-6f) return vec3(0);
-    vec2 direction = (vec2(particle_i.pos) - vec2(particle_j.pos)) / r;
+    vec3 direction = (vec3(particle_i.pos) - vec3(particle_j.pos)) / r;
     float contribution = kernel_manager.W1_pressure(r,smoothing_radius);
-    vec2 acceleration = particle_j.mass * ((particle_i.pressure / (particle_i.density * particle_i.density)) + (particle_j.pressure / (particle_j.density * particle_j.density))) * contribution * direction;
-    float error = particle_j.mass * ((1 / (particle_i.density * particle_i.density)) + (1 / (particle_j.density * particle_j.density))) * contribution;
-    return vec3(acceleration.x, acceleration.y, error);
+    vec3 acceleration = particle_j.mass * ((particle_i.pressure / (particle_i.density * particle_i.density)) + (particle_j.pressure / (particle_j.density * particle_j.density))) * contribution * direction;
+    //float error = particle_j.mass * ((1 / (particle_i.density * particle_i.density)) + (1 / (particle_j.density * particle_j.density))) * contribution;
+    return acceleration;
 }
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.2 Local Pressure Solvers
-vec2 Simulation::calculate_pressue_acceleration(Particle& particle_i) {
-    vec2 pressure_gradient = calculate_pressure_gradient(particle_i);
+vec3 Simulation::calculate_pressue_acceleration(Particle& particle_i) {
+    vec3 pressure_gradient = calculate_pressure_gradient(particle_i);
     if (any(isnan((pressure_gradient)))) {
-        pressure_gradient = vec2(0);
+        pressure_gradient = vec3(0);
     }
     return -pressure_gradient;
 }
@@ -243,22 +227,6 @@ void Simulation::handle_collisions(Particle& particle)
         vel.y *= -1 * collisionDamping;
     }
 
-    // Collide particle against the test obstacle
-   /* const vec3 obstacleHalfSize = obstacleSize * 0.5;
-    vec3 obstacleEdgeDst = obstacleHalfSize - abs(pos - obstacleCentre);
-
-    if (obstacleEdgeDst.x >= 0 && obstacleEdgeDst.y >= 0)
-    {
-        if (obstacleEdgeDst.x < obstacleEdgeDst.y) {
-            pos.x = obstacleHalfSize.x * sign(pos.x - obstacleCentre.x) + obstacleCentre.x;
-            vel.x *= -1 * collisionDamping;
-        }
-        else {
-            pos.y = obstacleHalfSize.y * sign(pos.y - obstacleCentre.y) + obstacleCentre.y;
-            vel.y *= -1 * collisionDamping;
-        }
-    }*/
-
     // Update position and velocity
     particle.pos = pos;
     particle.velocity = vel;
@@ -268,7 +236,7 @@ void Simulation::update_spacial_lookup()
     for (int i = 0; i < (int)simulation_size + obstacle_particle_count; ++i) {
         Particle& particle = particles[i];
 
-        vec<2,int> cell = get_cell_coord(particle.pos);
+        glm::ivec3 cell = get_cell_coord(particle.pos);
         int hash = hash_cell(cell);
         int key = KeyFromHash(hash, simulation_size + obstacle_particle_count);
         spatial_lookup[i] = std::make_pair(i, key);
@@ -291,43 +259,40 @@ void Simulation::update_spacial_lookup()
         }
     }
 }
-glm::vec<2, int> Simulation::get_cell_coord(vec2 pos) {
+glm::ivec3 Simulation::get_cell_coord(vec3 pos) {
     int file = static_cast<int>(pos.x / (smoothing_radius));
     int rank = static_cast<int>(pos.y / (smoothing_radius));
+    int depth = static_cast<int>(abs(pos.z) / (smoothing_radius));
 
-    return glm::vec<2, int>(file, rank);
+    return glm::ivec3(file, rank, depth);
 }
-int Simulation::hash_cell(glm::vec<2, int> cell)
+int Simulation::hash_cell(glm::ivec3 cell)
 {
     int grid_width = SCR_WIDTH / (smoothing_radius);
     int grid_height = SCR_HEIGHT / (smoothing_radius);
+    int grid_depth = SCR_HEIGHT / (smoothing_radius);
 
     //Bounds Check
-    if (cell.x < 0 || cell.x > grid_width || cell.y < 0 || cell.y > grid_height) return -1;
+    if (cell.x < 0 || cell.x > grid_width || cell.y < 0 || cell.y > grid_height || cell.z < 0 || cell.z > grid_depth) return -1;
 
     int a = cell.x * hashK1;
     int b = cell.y * hashK2;
-    return (a + b); 
-    /*uint32_t a = static_cast<uint32_t>(cell.x) * 92837111u;
-    uint32_t b = static_cast<uint32_t>(cell.y) * 689287499u;
-    return a ^ b;*/
+    int c = cell.z * hashK3;
+    return (a + b + c);
 }
-
 int Simulation::KeyFromHash(int hash, int tableSize)
 {
     //hash out of bound -> no key
     if (hash < 0) return -1;
     return hash % tableSize;
-    /*if (hash == UINT32_MAX) return -1;
-    return static_cast<int>(hash % static_cast<uint32_t>(tableSize));*/
 }
 template <typename R> 
 R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(Particle&, Particle&)) {
 
-        glm::vec<2,int> centre = get_cell_coord(particle_i.pos);
+        glm::ivec3 centre = get_cell_coord(particle_i.pos);
         R result = R{};
 
-        for (glm::vec<2, int> offset : cell_offsets)
+        for (glm::ivec3 offset : cell_offsets)
         {
             // Get key of current cell
             int key = KeyFromHash(hash_cell(centre+offset),simulation_size + obstacle_particle_count);
@@ -355,25 +320,28 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
 void Simulation::create_particles(){
     const float diameter = particle_radius * 2.0f;
 
-    int cols = (int)std::ceil(std::sqrt((float)simulation_size));
-    int rows = (int)std::ceil((float)simulation_size / cols);
+    // bounds: x in [0, W], y in [0, H], z in [-H, 0]
+    const float W = SCR_WIDTH / PIXELS_PER_METER;
+    const float H = SCR_HEIGHT / PIXELS_PER_METER;
+    const glm::vec3 center(W * 0.5f, H * 0.5f, -H * 0.5f);
 
-    float block_w = cols * diameter;
-    float block_h = rows * diameter;
+    // particles per cube edge (integer-safe ceil of the cube root)
+    int n = (int)std::cbrt((float)simulation_size);
+    while ((unsigned int)n * n * n < simulation_size) n++;
 
-    //Centre 
-    float start_x = ((SCR_WIDTH/PIXELS_PER_METER) - block_w) / 2.0f + particle_radius;
-    float start_y = ((SCR_HEIGHT/PIXELS_PER_METER) - block_h) / 2.0f + particle_radius;
-   // start_y = (SCR_HEIGHT - block_h);
-    //start_y = glm::max(particle_radius, start_y);
+    const float block = n * diameter;
 
-
-    //start_x = -block_w/2;
-    //start_y = -block_h/2;
+    // start corner so the block is centered; + radius so the first particle's center is inside
+    const glm::vec3 start = center - glm::vec3(block * 0.5f) + glm::vec3(particle_radius);
 
     for (unsigned int i = 0; i < simulation_size; i++) {
-        particles[i].pos.x = start_x + (i % cols) * diameter;
-        particles[i].pos.y = start_y + (i / cols) * diameter;
+        int ix = i % n;
+        int iy = (i / n) % n;
+        int iz = i / (n * n);
+
+        particles[i].pos.x = start.x + ix * diameter;
+        particles[i].pos.y = start.y + iy * diameter;
+        particles[i].pos.z = start.z + iz * diameter;
         particles[i].color = base_particle_color;
     }
     create_obstacles();  
@@ -385,6 +353,7 @@ void Simulation::random_particles() {
     for (unsigned int i = 0; i < simulation_size; i++) {
         particles[i].pos.x = ((float)rand() / RAND_MAX) * ((SCR_WIDTH / PIXELS_PER_METER) / 2);
         particles[i].pos.y = ((float)rand() / RAND_MAX) * ((SCR_HEIGHT / PIXELS_PER_METER) / 2);
+        particles[i].pos.z = SCR_HEIGHT / PIXELS_PER_METER * -0.5f;
         particles[i].color = base_particle_color;
     }
     create_obstacles();
@@ -398,7 +367,7 @@ void Simulation::create_obstacles() {
     bool  fill = true;
     int max_fill_depth = 2;
     //---SLOPE---
-    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
+    /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
         float x = i * particle_radius;
         float y = ((SCR_HEIGHT/PIXELS_PER_METER) / 2) - (i / 2.0f) * particle_radius;
         if (y < 0) break;
@@ -417,43 +386,66 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].movable = false;
             count++;
         }
-    }
+    }*/
 
     //---BOUNDS---
-    float x = 0,y = 0;
-    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH / PIXELS_PER_METER && count < obstacle_particle_count; i += frequency*2) {
-        x = i * particle_radius;
-        y = -particle_radius;
-        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
-        particles[simulation_size + count].color = obstacle_color;
-        particles[simulation_size + count].movable = false;
-        particles[simulation_size + count].velocity = vec3(0,-0.1f,0);
-        count++;
+    //SIdes
+    float x = 0,y = 0,z=0;
+    for (unsigned int k = 0; k * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; k += frequency * 2) {
+        z = k * -particle_radius;
+        for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH / PIXELS_PER_METER && count < obstacle_particle_count; i += frequency * 2) {
+            x = i * particle_radius;
+            y = -particle_radius;
+            particles[simulation_size + count].pos = vec3(x, y, z);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            particles[simulation_size + count].velocity = vec3(0, -0.1f, 0);
+            count++;
 
-        y = SCR_HEIGHT / PIXELS_PER_METER + particle_radius;
-        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
-        particles[simulation_size + count].color = obstacle_color;
-        particles[simulation_size + count].movable = false;
-        particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
-        count++;
+            y = SCR_HEIGHT / PIXELS_PER_METER + particle_radius;
+            particles[simulation_size + count].pos = vec3(x, y, z);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
+            count++;
+        }
+        for (unsigned int j = 0; j * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; j += frequency * 2) {
+            x = -particle_radius;
+            y = j * particle_radius;
+            particles[simulation_size + count].pos = vec3(x, y, z);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            particles[simulation_size + count].velocity = vec3(0.1f, 0, 0);
+            count++;
+
+            x = SCR_WIDTH / PIXELS_PER_METER + particle_radius;
+            particles[simulation_size + count].pos = vec3(x, y, z);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            particles[simulation_size + count].velocity = vec3(-0.1f, 0, 0);
+            count++;
+
+        }
     }
-    for (unsigned int j = 0; j * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; j += frequency*2) {
-        x = -particle_radius;
-        y = j * particle_radius;
-        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
-        particles[simulation_size + count].color = obstacle_color;
-        particles[simulation_size + count].movable = false;
-        particles[simulation_size + count].velocity = vec3(0.1f, 0, 0);
-        count++;
+    //FRONT / BACk 
+    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH / PIXELS_PER_METER && count < obstacle_particle_count; i += frequency * 2) {
+        for (unsigned int j = 0; j * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; j += frequency * 2) {
+            x = i * particle_radius;
+            y = j * particle_radius;
+            particles[simulation_size + count].pos = vec3(x, y, 0);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            particles[simulation_size + count].velocity = vec3(0, -0.1f, 0);
+            count++;
 
-        x = SCR_WIDTH / PIXELS_PER_METER + particle_radius;
-        particles[simulation_size + count].pos = vec3(x, y, 0.0f);
-        particles[simulation_size + count].color = obstacle_color;
-        particles[simulation_size + count].movable = false;
-        particles[simulation_size + count].velocity = vec3(-0.1f, 0, 0);
-        count++;
-
+            particles[simulation_size + count].pos = vec3(x, y, SCR_HEIGHT / -PIXELS_PER_METER);
+            particles[simulation_size + count].color = obstacle_color;
+            particles[simulation_size + count].movable = false;
+            particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
+            count++;
+        }
     }
+    
     //---SPIKE---
     /*float height = 400;
     float x = -particle_radius, y = particle_radius - (height / (SCR_WIDTH / 2)) * particle_radius;
@@ -534,8 +526,8 @@ void Simulation::print_debug_info() {
         p.color = base_particle_color;
         if (!p.movable)
             p.color = obstacle_color;
-        glm::vec<2, int> centre = get_cell_coord(p.pos);
-        for (glm::vec<2, int> offset : cell_offsets) {
+        glm::ivec3 centre = get_cell_coord(p.pos);
+        for (glm::ivec3 offset : cell_offsets) {
             int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
             if (key == -1) continue;
             int start = start_indices[key];
@@ -548,20 +540,4 @@ void Simulation::print_debug_info() {
     }
     println("Duplicates: " << duplicates / 2);
 
-    float density = 0;
-    glm::vec<2, int> centre = get_cell_coord(vec2(sample_point));
-    for (glm::vec<2, int> offset : cell_offsets) {
-        int key = KeyFromHash(hash_cell(centre + offset), simulation_size + obstacle_particle_count);
-        if (key == -1) continue;
-        int start = start_indices[key];
-        for (int s = start; s < simulation_size + obstacle_particle_count; ++s) {
-            if (spatial_lookup[s].second != key) break;
-            Particle& p2 = particles[spatial_lookup[s].first];
-            p2.color = highlighted_particle_color;
-            density += sample_density_contribution(p2);
-        }
-    }
-    println("Sample Density: " << density);
-
-    println("---------------------------------------");
 }

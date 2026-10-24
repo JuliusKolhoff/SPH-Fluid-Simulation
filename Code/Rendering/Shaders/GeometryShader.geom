@@ -23,6 +23,7 @@ uniform vec3 u_camera_right;
 in vec3 Color[];
 out vec3 oColor;
 out vec2 gTexCoord;
+out vec3 vertex_position;
 
 //out vec2 resolution;
 
@@ -41,8 +42,8 @@ void main(){
     vec3 c = gl_in[0].gl_Position.xyz;
     mat4 mvp = projection * view * model;
 
-    gl_Position = mvp * vec4(c - right - up, 1.0); gTexCoord = vec2(0,0); EmitVertex();
-    gl_Position = mvp * vec4(c - right + up, 1.0); gTexCoord = vec2(0,1); EmitVertex();
-    gl_Position = mvp * vec4(c + right - up, 1.0); gTexCoord = vec2(1,0); EmitVertex();
-    gl_Position = mvp * vec4(c + right + up, 1.0); gTexCoord = vec2(1,1); EmitVertex();
+    gl_Position = mvp * vec4(c - right - up, 1.0); gTexCoord = vec2(0,0); vertex_position = c; EmitVertex();
+    gl_Position = mvp * vec4(c - right + up, 1.0); gTexCoord = vec2(0,1); vertex_position = c; EmitVertex();
+    gl_Position = mvp * vec4(c + right - up, 1.0); gTexCoord = vec2(1,0); vertex_position = c; EmitVertex();
+    gl_Position = mvp * vec4(c + right + up, 1.0); gTexCoord = vec2(1,1); vertex_position = c; EmitVertex();
 }

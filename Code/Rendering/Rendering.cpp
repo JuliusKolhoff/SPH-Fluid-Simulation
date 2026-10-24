@@ -31,9 +31,9 @@ int Rendering::start(GLFWwindow* window) {
     }
     else {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);     // standard 
+        glEnable(GL_DEPTH_TEST);
     }
     glEnable(GL_BLEND);
-
     glEnable(GL_MULTISAMPLE);
 
     //----
@@ -109,6 +109,7 @@ int Rendering::start(GLFWwindow* window) {
         shader.setMat4("view", camera.GetViewMatrix());
         shader.setVec3("u_camera_up", camera.Up);
         shader.setVec3("u_camera_right", camera.Right);
+        shader.setVec3("u_camera_position", camera.Position);
         
         
         //Simulation Step
@@ -130,8 +131,8 @@ int Rendering::start(GLFWwindow* window) {
 
             shader.Use();
             vao.Bind();
-            bool draw_obstacles = true;
-            if (draw_obstacles) {
+
+            if (Simulation::get_instance().draw_obstacles) {
                 glDrawArrays(GL_POINTS, 0, Simulation::get_instance().simulation_size + Simulation::get_instance().obstacle_particle_count);
             }
             else {

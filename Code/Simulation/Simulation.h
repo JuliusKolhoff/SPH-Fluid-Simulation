@@ -13,6 +13,7 @@
 using namespace glm;
 static const int hashK1 = 4000009;
 static const int hashK2 = 8000011;
+static const int hashK3 = 12000017;
 
 class Simulation
 {
@@ -22,36 +23,23 @@ public:
 
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 300;
-    unsigned int obstacle_particle_count = 1000;
+    unsigned int simulation_size = 5200;
+    unsigned int obstacle_particle_count = 20000;
+    bool draw_obstacles = false;
 
     float step_size = 0.01f;
 
-    /*float target_density = 6.0f;
-    float smoothing_radius = 0.5f;
-    float k = 10;
-    float viscosity = 1.0f;
-    float gravity = 6;*/
-
-    /*float smoothing_radius = 0.7f;
-    float target_density = 4.0f; 
-    float k = 25.0f;
-    float viscosity = 2.5f;
-    float gravity = 9.8f;*/
-
-    //float particle_radius = 0.14f;
     float smoothing_radius = 0.57f;   
     float target_density = 6.0f;   
     float k = 38.0f;  
     float viscosity = 3.5f;
     float gravity = 5.0f;
     
-    
     bool right_mouse_down = false;
     vec3 force_point = vec3(0);
 
     //Crude Rendering Improvement
-    bool render_complex = false;
+    bool render_complex = true;
     float radius_increase = 4.0f;
     //float radius_increase = 10.0f;
 
@@ -80,17 +68,20 @@ private:
         spatial_lookup = new std::pair<int, int>[simulation_size + obstacle_particle_count];
         start_indices = new int[simulation_size + obstacle_particle_count];
     };
-    glm::vec<2, int> cell_offsets[9] =
+    glm::ivec3 cell_offsets[27] =
     {
-        glm::vec<2,int>(-1, 1),
-        glm::vec<2,int>(0, 1),
-        glm::vec<2,int>(1, 1),
-        glm::vec<2,int>(-1, 0),
-        glm::vec<2,int>(0, 0),
-        glm::vec<2,int>(1, 0),
-        glm::vec<2,int>(-1, -1),
-        glm::vec<2,int>(0, -1),
-        glm::vec<2,int>(1, -1)
+        // z = -1
+        {-1, 1,-1}, {0, 1,-1}, {1, 1,-1},
+        {-1, 0,-1}, {0, 0,-1}, {1, 0,-1},
+        {-1,-1,-1}, {0,-1,-1}, {1,-1,-1},
+        // z = 0
+        {-1, 1, 0}, {0, 1, 0}, {1, 1, 0},
+        {-1, 0, 0}, {0, 0, 0}, {1, 0, 0},
+        {-1,-1, 0}, {0,-1, 0}, {1,-1, 0},
+        // z = +1
+        {-1, 1, 1}, {0, 1, 1}, {1, 1, 1},
+        {-1, 0, 1}, {0, 0, 1}, {1, 0, 1},
+        {-1,-1, 1}, {0,-1, 1}, {1,-1, 1}
     };
 public:
     static Simulation& get_instance() {
@@ -112,15 +103,15 @@ public:
     float calculate_density_contribution(Particle& particle_i, Particle& particle_j);
     void sample_at_point(vec3 pos);
     void update_vertex_data(std::vector<GLfloat> *vertices);
-    vec2 calculate_pressure_gradient(Particle &particle);
+    vec3 calculate_pressure_gradient(Particle &particle);
     vec3 calculate_pressure_contribution(Particle& particle_i, Particle& particle_j);
     float calculate_pressure(Particle& particle);
-    vec2 calculate_pressue_acceleration(Particle& particle);
+    vec3 calculate_pressue_acceleration(Particle& particle);
     vec3 calculate_viscosity_force(Particle& particle_i);
     vec3 calculate_viscosity_contribution(Particle& particle_i, Particle& particle_j);
     void handle_collisions(Particle& particle);
-    glm::vec<2, int> get_cell_coord(vec2 pos);
-    int hash_cell(glm::vec<2, int>  cell);
+    glm::ivec3 get_cell_coord(vec3 pos);
+    int hash_cell(glm::ivec3 cell);
     int KeyFromHash(int hash, int tableSize);
     void update_spacial_lookup();
     template <typename R> R do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(Particle&,Particle&));

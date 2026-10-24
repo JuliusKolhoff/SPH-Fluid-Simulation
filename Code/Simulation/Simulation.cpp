@@ -290,6 +290,7 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
         R result = R{};
 
         int seen[27]; int n_seen = 0;
+        const float h2 = smoothing_radius * smoothing_radius;
         for (glm::ivec3 offset : cell_offsets) {
             int key = KeyFromHash(hash_cell(centre + offset), simulation_size + obstacle_particle_count);
             bool dup = false;
@@ -305,12 +306,12 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
 
                 int particleIndex = spatial_lookup[i].first;
                 Particle& particle_j = particles[particleIndex];
-                //float sqrDst = glm::length2(points[particleIndex] - samplePoint);
+
+                vec3 d = particle_i.pos - particle_j.pos;
+                if (dot(d, d) > h2) continue;
                 
-                //if (sqrDst <= sqrRadius)
-                //{
-                    result += (this->*func)(particle_i, particle_j);
-                //}
+                result += (this->*func)(particle_i, particle_j);
+
 
             }
         }

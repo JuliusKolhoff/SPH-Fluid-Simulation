@@ -100,7 +100,7 @@ int Rendering::start(GLFWwindow* window) {
         lastFrame = currentFrame;
 
         if (timer == 0) {
-		    std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+		    std::cout << "FPS: " << 1.0f / deltaTime << " Particle Count: "  << Simulation::get_instance().simulation_size + Simulation::get_instance().obstacle_particle_count << std::endl;
             timer = 120;
         }
         timer--;
@@ -178,7 +178,7 @@ int Rendering::createWindow(int width,int height, GLFWwindow*& window) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
-    window = glfwCreateWindow(width, height, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(width, height, "SPH FLuid Simulation", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;

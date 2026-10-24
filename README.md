@@ -1,6 +1,6 @@
-# 2D SPH Fluid Simulation
+# SPH Fluid Simulation
 
-A real-time, 2D **Smoothed Particle Hydrodynamics (SPH)** fluid simulation written in C++ with an OpenGL renderer. The simulation is a weakly compressible SPH(WCSPH) using OpenMp parallelization and spatial hashing for improved performance.
+A real-time, 2D/3D(Work in Progress) **Smoothed Particle Hydrodynamics (SPH)** fluid simulation written in C++ with an OpenGL renderer. The simulation is a weakly compressible SPH(WCSPH) using OpenMp parallelization and spatial hashing for improved performance.
 
 The SPH implementation follows the paper *"A Survey on SPH Methods in Computer Graphics"* (Koschier et al.). Used sections are referenced in the source comments.
 

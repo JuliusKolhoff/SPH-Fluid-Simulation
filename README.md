@@ -51,7 +51,7 @@ Own OpenGL rendering for maximum performance. Particles are rendered with one  d
 ## Further Improvments
 
 - Currently only using Cpu for calculation -> More particles would require Gpu support(Compute Shader)
-- Possible 3D adaptation
+- 3D Version: Work in Progress on 3D branch
 - More realistic Models(IISPH,DFSPH)
 
 ## References

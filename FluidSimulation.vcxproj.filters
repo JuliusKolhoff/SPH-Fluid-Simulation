@@ -912,6 +912,9 @@
     <ClInclude Include="Code\Simulation\Simulation.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="Code\Rendering\Camera.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="dependencies\include\glm\detail\func_common.inl">

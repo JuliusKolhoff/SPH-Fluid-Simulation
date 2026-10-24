@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Code\Rendering\BufferObject.h" />
+    <ClInclude Include="Code\Rendering\Camera.h" />
     <ClInclude Include="Code\Simulation\Kernels.h" />
     <ClInclude Include="Code\Simulation\Particle.h" />
     <ClInclude Include="Code\Rendering\Rendering.h" />

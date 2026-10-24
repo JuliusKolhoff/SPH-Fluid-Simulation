@@ -13,6 +13,7 @@
 #include "VertexArrayObject.h"
 #include "../Simulation/Particle.h"
 #include "../Simulation/Simulation.h"
+#include "Camera.h"
 
 #define println(x) std::cout << x << std::endl
 
@@ -23,7 +24,7 @@ class Rendering
 {
 private:
 	void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-	void processInput(GLFWwindow* window);
+	void processInput(GLFWwindow* window,float deltaTime);
 public: 
 	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 	void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);

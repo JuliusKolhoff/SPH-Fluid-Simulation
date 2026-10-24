@@ -117,10 +117,8 @@ int Rendering::start(GLFWwindow* window) {
         
         
         //Simulation Step
-        if (run_simulation) {
-            Simulation::get_instance().step(deltaTime,window);
-
-        }
+        if (run_simulation)
+            Simulation::get_instance().advance(deltaTime, window);
 
         //Clear Screen
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

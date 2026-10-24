@@ -18,22 +18,25 @@ static const int hashK3 = 12000017;
 class Simulation
 {
 public:
-
-    static constexpr float PIXELS_PER_METER = 100;
-
+    static constexpr float PIXELS_PER_METER = 150;
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 5200;
+    unsigned int simulation_size = 3000;
     unsigned int obstacle_particle_count = 20000;
     bool draw_obstacles = false;
 
+
+    //CFL
+    float time_scale = 1.0f;   // >1 = fast forward
+    int   max_substeps = 1;     // safety cap so a frame can't take forever
+
     float step_size = 0.01f;
 
-    float smoothing_radius = 0.57f;   
-    float target_density = 6.0f;   
-    float k = 38.0f;  
-    float viscosity = 3.5f;
-    float gravity = 5.0f;
+    float smoothing_radius = 0.576f;
+    float target_density = 30.0f;
+    float k = 27423.0f;
+    float viscosity = 6.91f;
+    float gravity = 30.81f;
     
     bool right_mouse_down = false;
     vec3 force_point = vec3(0);
@@ -97,7 +100,8 @@ public:
     }
     void create_particles();
     void random_particles();
-	void step(float delta_time,GLFWwindow* window);
+    float step(float max_dt, GLFWwindow* window);
+    void advance(float frame_dt, GLFWwindow* window);
     float calculate_density(Particle &particle);
     float sample_density_contribution(Particle& particle_j);
     float calculate_density_contribution(Particle& particle_i, Particle& particle_j);

@@ -31,7 +31,7 @@ void main(){
 
 	oColor = Color[0];
 
-    float perspective_correction = 5.0f;
+    float perspective_correction = 2.5f;
 
 	float r = perspective_correction * u_radius * u_pixels_per_meter * 2.0 / u_resolution.y;
     if (u_render_complex) r *= u_radius_increase;

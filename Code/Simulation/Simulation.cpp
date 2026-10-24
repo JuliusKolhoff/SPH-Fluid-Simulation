@@ -2,16 +2,17 @@
 
 Simulation* Simulation::instance = nullptr;
 
-void Simulation::step(float delta_time,GLFWwindow* window) {
+float Simulation::step(float max_dt,GLFWwindow* window) {
     // CFL condition A Survey Sec.2.9:
     float v_max = 1.0f;   // avoid div/0
     for (int i = 0; i < simulation_size; ++i)
         v_max = max(v_max, length(vec3(particles[i].velocity)));
 
     const float lambda = 0.4f;
-    step_size = lambda * smoothing_radius / v_max;
-    //step_size = min(step_size, delta_time);
-    step_size = min(step_size, 0.016f); // safety
+    float c = sqrtf(7.0f * k / target_density);   // speed of sound
+    step_size = lambda * smoothing_radius / (v_max + c);
+    step_size = min(step_size, max_dt) * 2;
+
     update_spacial_lookup();
     error_sum = 0;
     density_sum = 0;
@@ -94,6 +95,12 @@ void Simulation::step(float delta_time,GLFWwindow* window) {
     }
 
     //std::cout << "Density: " << density_sum/simulation_size << std::endl;
+    return step_size;
+}
+void Simulation::advance(float frame_dt, GLFWwindow* window) {
+    float remaining = std::min(frame_dt, 0.05f) * time_scale;
+    for (int n = 0; n < max_substeps && remaining > 1e-5f; ++n)
+        remaining -= step(remaining, window);
 }
 
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.1. Measuring Compression
@@ -116,7 +123,7 @@ vec3 Simulation::calculate_pressure_gradient(Particle& particle_i) {
 vec3 Simulation::calculate_pressure_contribution(Particle& particle_i, Particle& particle_j) {
     float r = distance(vec3(particle_i.pos), vec3(particle_j.pos));
     if (r < 1e-6f) return vec3(0);
-    vec3 direction = (vec3(particle_i.pos) - vec3(particle_j.pos)) / r;
+    vec3 direction = (particle_i.pos - particle_j.pos) / r;
     float contribution = kernel_manager.W1_pressure(r,smoothing_radius);
     vec3 acceleration = particle_j.mass * ((particle_i.pressure / (particle_i.density * particle_i.density)) + (particle_j.pressure / (particle_j.density * particle_j.density))) * contribution * direction;
     //float error = particle_j.mass * ((1 / (particle_i.density * particle_i.density)) + (1 / (particle_j.density * particle_j.density))) * contribution;
@@ -134,9 +141,8 @@ vec3 Simulation::calculate_pressue_acceleration(Particle& particle_i) {
 ////A Survey on SPH Methods in Computer Graphics, Sec 5.1.2, Eq. 68
 vec3 Simulation::calculate_viscosity_force(Particle& particle_i) {
     if (!particle_i.movable) return vec3(0);
-    // For a 2-D simulation d=2, so the prefactor 2*(d+2) = 8.
-    const float d = 2.0f;
-    const float prefactor = 2.0f * (d + 2.0f);            // = 8
+    const float d = 3.0f;
+    const float prefactor = 2.0f * (d + 2.0f);   // = 10
     float safe_density = std::max(particle_i.density, 1e-4f);
     return (viscosity/safe_density) * prefactor * do_for_each_neighbour<vec3>(particle_i, &Simulation::calculate_viscosity_contribution);
 
@@ -226,6 +232,9 @@ void Simulation::handle_collisions(Particle& particle)
         pos.y = (SCR_HEIGHT / PIXELS_PER_METER);
         vel.y *= -1 * collisionDamping;
     }
+    const float D = SCR_HEIGHT / PIXELS_PER_METER;
+    if (pos.z >= 0) { pos.z = 0;  vel.z *= -collisionDamping; }
+    if (pos.z <= -D) { pos.z = -D; vel.z *= -collisionDamping; }
 
     // Update position and velocity
     particle.pos = pos;
@@ -260,25 +269,13 @@ void Simulation::update_spacial_lookup()
     }
 }
 glm::ivec3 Simulation::get_cell_coord(vec3 pos) {
-    int file = static_cast<int>(pos.x / (smoothing_radius));
-    int rank = static_cast<int>(pos.y / (smoothing_radius));
-    int depth = static_cast<int>(abs(pos.z) / (smoothing_radius));
-
-    return glm::ivec3(file, rank, depth);
+    return glm::ivec3(glm::floor(pos / smoothing_radius));
 }
-int Simulation::hash_cell(glm::ivec3 cell)
-{
-    int grid_width = SCR_WIDTH / (smoothing_radius);
-    int grid_height = SCR_HEIGHT / (smoothing_radius);
-    int grid_depth = SCR_HEIGHT / (smoothing_radius);
-
-    //Bounds Check
-    if (cell.x < 0 || cell.x > grid_width || cell.y < 0 || cell.y > grid_height || cell.z < 0 || cell.z > grid_depth) return -1;
-
-    int a = cell.x * hashK1;
-    int b = cell.y * hashK2;
-    int c = cell.z * hashK3;
-    return (a + b + c);
+int Simulation::hash_cell(glm::ivec3 c) {
+    uint32_t h = (uint32_t)c.x * (uint32_t)hashK1
+        + (uint32_t)c.y * (uint32_t)hashK2
+        + (uint32_t)c.z * (uint32_t)hashK3;
+    return (int)(h & 0x7fffffff);   // always non-negative
 }
 int Simulation::KeyFromHash(int hash, int tableSize)
 {
@@ -292,11 +289,13 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
         glm::ivec3 centre = get_cell_coord(particle_i.pos);
         R result = R{};
 
-        for (glm::ivec3 offset : cell_offsets)
-        {
-            // Get key of current cell
-            int key = KeyFromHash(hash_cell(centre+offset),simulation_size + obstacle_particle_count);
-            if (key == -1) continue;
+        int seen[27]; int n_seen = 0;
+        for (glm::ivec3 offset : cell_offsets) {
+            int key = KeyFromHash(hash_cell(centre + offset), simulation_size + obstacle_particle_count);
+            bool dup = false;
+            for (int s = 0; s < n_seen; s++) if (seen[s] == key) { dup = true; break; }
+            if (dup) continue;
+            seen[n_seen++] = key;
             int cellStartIndex = start_indices[key];
             //Loop all Neighbouts
             for (int i = cellStartIndex; i < simulation_size + obstacle_particle_count; i++)

@@ -24,7 +24,7 @@ Each simulation step runs the following stages:
 |---|---|
 | 0. Time step | `dt = 0.4 · h / v_max`, capped at `0.016 s` (CFL condition) |
 | 1. Neighbour search | Particles are hashed to grid cells, sorted by key, and a start-index table is built |
-| 2. Density | `ρᵢ = Σ mⱼ · W(rᵢⱼ, h)` using a 2D-normalised smoothing kernel |
+| 2. Density | `ρᵢ = Σ mⱼ · W(rᵢⱼ, h)` using a 3D-normalised smoothing kernel |
 | 3. Pressure | `pᵢ = k · ((ρᵢ / ρ₀)⁷ − 1)` |
 | 4. Forces | Symmetric pressure gradient (spiky kernel derivative), viscosity, gravity, optional mouse force |
 | 5. Integration | Semi-implicit Euler, then boundary collisions with damping (`0.95`) |

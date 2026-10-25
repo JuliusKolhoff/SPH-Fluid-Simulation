@@ -66,7 +66,7 @@ float Simulation::step(float max_dt,GLFWwindow* window) {
 
 void Simulation::integration_step() {
     #pragma omp parallel for schedule(static)
-    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
+    for (int i = 0; i < simulation_size; ++i)
     {
         Particle& p = particles[i];
         if (p.movable)
@@ -96,7 +96,7 @@ void Simulation::advance(float frame_dt, GLFWwindow* window) {
 
 void Simulation::pressure_step() {
     #pragma omp parallel for schedule(static)
-    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
+    for (int i = 0; i < simulation_size; ++i) {
         Particle& p = particles[i];
         if (p.movable) {
             // Berechne Druck basierend auf Dichte-Fehler
@@ -149,7 +149,7 @@ void Simulation::external_forces_step(GLFWwindow* window) {
     x /= PIXELS_PER_METER;
     y /= PIXELS_PER_METER;
 #pragma omp parallel for schedule(dynamic, 32)
-    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
+    for (int i = 0; i < simulation_size; ++i)
     {
         Particle& p = particles[i];
         if (p.movable) {
@@ -209,7 +209,7 @@ vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle
 float Simulation::density_step() {
     float sum = 0;
     #pragma omp parallel for reduction(+:sum) schedule(dynamic, 32)
-    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
+    for (int i = 0; i < simulation_size; ++i) {
         Particle& p = particles[i];
         calculate_density(p);
 
@@ -451,6 +451,7 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].color = obstacle_color;
             particles[simulation_size + count].movable = false;
             particles[simulation_size + count].velocity = vec3(0, -0.1f, 0);
+            particles[simulation_size + count].density = target_density;
             count++;
 
             y = SCR_HEIGHT / PIXELS_PER_METER + particle_radius;
@@ -458,6 +459,7 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].color = obstacle_color;
             particles[simulation_size + count].movable = false;
             particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
+            particles[simulation_size + count].density = target_density;
             count++;
         }
         for (unsigned int j = 0; j * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; j += frequency * 2) {
@@ -467,6 +469,7 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].color = obstacle_color;
             particles[simulation_size + count].movable = false;
             particles[simulation_size + count].velocity = vec3(0.1f, 0, 0);
+            particles[simulation_size + count].density = target_density;
             count++;
 
             x = SCR_WIDTH / PIXELS_PER_METER + particle_radius;
@@ -474,6 +477,7 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].color = obstacle_color;
             particles[simulation_size + count].movable = false;
             particles[simulation_size + count].velocity = vec3(-0.1f, 0, 0);
+            particles[simulation_size + count].density = target_density;
             count++;
 
         }
@@ -487,12 +491,14 @@ void Simulation::create_obstacles() {
             particles[simulation_size + count].color = obstacle_color;
             particles[simulation_size + count].movable = false;
             particles[simulation_size + count].velocity = vec3(0, -0.1f, 0);
+            particles[simulation_size + count].density = target_density;
             count++;
 
             particles[simulation_size + count].pos = vec3(x, y, SCR_HEIGHT / -PIXELS_PER_METER);
             particles[simulation_size + count].color = obstacle_color;
             particles[simulation_size + count].movable = false;
             particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
+            particles[simulation_size + count].density = target_density;
             count++;
         }
     }

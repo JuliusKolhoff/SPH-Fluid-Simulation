@@ -5,6 +5,8 @@ A real-time, 3D **Smoothed Particle Hydrodynamics (SPH)** fluid simulation writt
 The SPH implementation follows the paper *"A Survey on SPH Methods in Computer Graphics"* (Koschier et al.). Used sections are referenced in the source comments.
 
 <img width="1385" height="907" alt="image" src="https://github.com/user-attachments/assets/e85c1358-160a-4895-a007-f8137ce24d6e" />
+<img width="1288" height="840" alt="image" src="https://github.com/user-attachments/assets/55490221-72a0-4fa6-a44c-2abcedcc829c" />
+
 
 
 ## Features

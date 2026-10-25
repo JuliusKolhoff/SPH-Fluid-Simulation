@@ -4,6 +4,7 @@
 #include <math.h>
 #include <algorithm>
 
+const float PI = 3.14159265f;
 
 class KernelManager {
 	

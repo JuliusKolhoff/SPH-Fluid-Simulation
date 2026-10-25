@@ -3,87 +3,29 @@
 Simulation* Simulation::instance = nullptr;
 
 float Simulation::step(float max_dt,GLFWwindow* window) {
-    // CFL condition A Survey Sec.2.9:
-    float v_max = 1.0f;   // avoid div/0
-    for (int i = 0; i < simulation_size; ++i)
-        v_max = max(v_max, length(vec3(particles[i].velocity)));
-
-    const float lambda = 0.4f;
-    float c = sqrtf(7.0f * k / target_density);   // speed of sound
-    step_size = lambda * smoothing_radius / (v_max + c);
-    step_size = min(step_size, max_dt) * 2;
+    
+    calculate_cfl(max_dt);
 
     update_spacial_lookup();
+
     error_sum = 0;
     density_sum = 0;
 
-    // 1 Density
-    float sum = 0;
-#pragma omp parallel for reduction(+:sum) schedule(dynamic, 32)
-    for (int i = 0; i < simulation_size  +  obstacle_particle_count; ++i) {
-        Particle& p = particles[i];
-        calculate_density(p);
-        
-        /*float ratio = p.density / target_density;
-        p.color = vec3(1.0f - ratio,1.0f  - ratio, 1.0f);*/
-        if (p.movable) {
-            sum += p.density;
-        }
-    }
-    density_sum = sum;
-#pragma omp parallel for schedule(static)
+    //1 Density
+    density_sum = density_step();
     //2 Pressure
-    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
-        Particle& p = particles[i];
-        if (p.movable) {
-            // Berechne Druck basierend auf Dichte-Fehler
-            p.pressure = calculate_pressure(p);
-
-        }
-    }
+    pressure_step();
     // 3 Forces
-    double x, y;//Mouse POs
-    glfwGetCursorPos(window, &x, &y);
-    y = SCR_HEIGHT - y;
-    x /= PIXELS_PER_METER;
-    y /= PIXELS_PER_METER;
-#pragma omp parallel for schedule(dynamic, 32)
-    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
-    {
-        Particle& p = particles[i];
-        if (p.movable) {
-            vec3 accel = calculate_pressue_acceleration(p);
-            accel += vec3(0, -gravity,0);
-            //p.velocity += vec3(0, -10.0f,0);    // gravity
-            p.velocity += accel * step_size;
-            p.velocity += calculate_viscosity_force(p) * step_size;
-            //p.velocity *= 0.99f;
-            
-            
-           /* float speed = length(vec3(p.velocity));
-            float v_max = 1000.0f;
-            float ratio = clamp(speed / v_max, 0.0f, 1.0f);
-            ratio /= 2;*/
-            //p.color = vec3(ratio, ratio, 1.0f);
-            //COlor Coading
-            float speed = length(vec3(p.velocity));
-            float max_speed = 15.0f;
-            float t = clamp(speed / max_speed, 0.0f, 1.0f); 
-            //blue (slow) -> cyan -> white (fast)
-            vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
-            vec3 fast_color = vec3(0.9f, 0.95f, 1.0f);
-            //vec3 fast_color = vec3(0.9f, 0.5f, 0.5f);
-            p.color = mix(slow_color, fast_color, t);
-
-            vec2 externalForces = vec3(0);
-            
-        }
-    }
-    
-
-
-#pragma omp parallel for schedule(static)
+    external_forces_step(window);
     //// 4 Integrate
+    integration_step();
+
+    //std::cout << "Density: " << density_sum/simulation_size << std::endl;
+    return step_size;
+}
+
+void Simulation::integration_step() {
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
     {
         Particle& p = particles[i];
@@ -93,14 +35,35 @@ float Simulation::step(float max_dt,GLFWwindow* window) {
             handle_collisions(p);
         }
     }
+}
 
-    //std::cout << "Density: " << density_sum/simulation_size << std::endl;
-    return step_size;
+// CFL condition A Survey Sec.2.9:
+void Simulation::calculate_cfl(float max_dt) {
+    float v_max = 1.0f;   // avoid div/0
+    for (int i = 0; i < simulation_size; ++i)
+        v_max = max(v_max, length(vec3(particles[i].velocity)));
+
+    const float lambda = 0.8f;
+    float c = sqrtf(7.0f * k / target_density);   // speed of sound
+    step_size = lambda * smoothing_radius / (v_max + c);
+    step_size = min(step_size, max_dt);
 }
 void Simulation::advance(float frame_dt, GLFWwindow* window) {
     float remaining = std::min(frame_dt, 0.05f) * time_scale;
     for (int n = 0; n < max_substeps && remaining > 1e-5f; ++n)
         remaining -= step(remaining, window);
+}
+
+void Simulation::pressure_step() {
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
+        Particle& p = particles[i];
+        if (p.movable) {
+            // Berechne Druck basierend auf Dichte-Fehler
+            p.pressure = calculate_pressure(p);
+
+        }
+    }
 }
 
 //A Survey on SPH Methods in Computer Graphics Page 6: 3.1. Measuring Compression
@@ -137,6 +100,39 @@ vec3 Simulation::calculate_pressue_acceleration(Particle& particle_i) {
     }
     return -pressure_gradient;
 }
+
+
+void Simulation::external_forces_step(GLFWwindow* window) {
+    double x, y;//Mouse POs
+    glfwGetCursorPos(window, &x, &y);
+    y = SCR_HEIGHT - y;
+    x /= PIXELS_PER_METER;
+    y /= PIXELS_PER_METER;
+#pragma omp parallel for schedule(dynamic, 32)
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i)
+    {
+        Particle& p = particles[i];
+        if (p.movable) {
+            vec3 accel = calculate_pressue_acceleration(p);
+            accel += vec3(0, -gravity, 0);
+            p.velocity += accel * step_size;
+            p.velocity += calculate_viscosity_force(p) * step_size;
+
+            //COlor Coading
+            float speed = length(vec3(p.velocity));
+            float max_speed = 15.0f;
+            float t = clamp(speed / max_speed, 0.0f, 1.0f);
+            vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
+            vec3 fast_color = vec3(0.9f, 0.95f, 1.0f);
+            p.color = mix(slow_color, fast_color, t);
+
+            vec2 externalForces = vec3(0);
+
+        }
+    }
+}
+
+
 //A Survey on SPH Methods in Computer Graphics Page 12: 5.1 Viscous Fluids
 ////A Survey on SPH Methods in Computer Graphics, Sec 5.1.2, Eq. 68
 vec3 Simulation::calculate_viscosity_force(Particle& particle_i) {
@@ -170,6 +166,21 @@ vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle
 }
 
 
+float Simulation::density_step() {
+    float sum = 0;
+    #pragma omp parallel for reduction(+:sum) schedule(dynamic, 32)
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
+        Particle& p = particles[i];
+        calculate_density(p);
+
+        /*float ratio = p.density / target_density;
+        p.color = vec3(1.0f - ratio,1.0f  - ratio, 1.0f);*/
+        if (p.movable) {
+            sum += p.density;
+        }
+    }
+    return sum;
+}
 //A Survey on SPH Methods in Computer Graphics Page 3: 2.4 Mass Density Estimation
 float Simulation::calculate_density(Particle& particle_i) {
     float density = do_for_each_neighbour<float>(particle_i,&Simulation::calculate_density_contribution);

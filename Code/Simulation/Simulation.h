@@ -100,25 +100,37 @@ public:
     }
     void create_particles();
     void random_particles();
+    //CFL/STep
     float step(float max_dt, GLFWwindow* window);
     void advance(float frame_dt, GLFWwindow* window);
+    void calculate_cfl(float max_dt);
+    void integration_step();
+    //densty
     float calculate_density(Particle &particle);
     float sample_density_contribution(Particle& particle_j);
     float calculate_density_contribution(Particle& particle_i, Particle& particle_j);
-    void sample_at_point(vec3 pos);
-    void update_vertex_data(std::vector<GLfloat> *vertices);
+    float density_step();
+    //Pressure
     vec3 calculate_pressure_gradient(Particle &particle);
     vec3 calculate_pressure_contribution(Particle& particle_i, Particle& particle_j);
     float calculate_pressure(Particle& particle);
     vec3 calculate_pressue_acceleration(Particle& particle);
+    void pressure_step();
+    //Viscosity
     vec3 calculate_viscosity_force(Particle& particle_i);
     vec3 calculate_viscosity_contribution(Particle& particle_i, Particle& particle_j);
-    void handle_collisions(Particle& particle);
+    void external_forces_step(GLFWwindow* window);
+
+    //Spatial HAsh
     glm::ivec3 get_cell_coord(vec3 pos);
     int hash_cell(glm::ivec3 cell);
     int KeyFromHash(int hash, int tableSize);
     void update_spacial_lookup();
     template <typename R> R do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(Particle&,Particle&));
+    //Debug/MSC
+    void sample_at_point(vec3 pos);
+    void update_vertex_data(std::vector<GLfloat> *vertices);
+    void handle_collisions(Particle& particle);
     void print_debug_info();
 private:
     void create_obstacles();

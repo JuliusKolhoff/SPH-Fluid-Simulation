@@ -6,21 +6,61 @@ float Simulation::step(float max_dt,GLFWwindow* window) {
     
     calculate_cfl(max_dt);
 
+    static double t_lookup = 0, t_density = 0, t_pressure = 0, t_forces = 0, t_integrate = 0;
+    static int    calls = 0;
+    static double last_print = omp_get_wtime();
+
+    double t0 = omp_get_wtime();
+
     update_spacial_lookup();
+    double t1 = omp_get_wtime();
 
     error_sum = 0;
     density_sum = 0;
 
-    //1 Density
+    // 1 Density
     density_sum = density_step();
-    //2 Pressure
+    double t2 = omp_get_wtime();
+
+    // 2 Pressure
     pressure_step();
+    double t3 = omp_get_wtime();
+
     // 3 Forces
     external_forces_step(window);
-    //// 4 Integrate
-    integration_step();
+    double t4 = omp_get_wtime();
 
-    //std::cout << "Density: " << density_sum/simulation_size << std::endl;
+    // 4 Integrate
+    integration_step();
+    double t5 = omp_get_wtime();
+
+    t_lookup += t1 - t0;
+    t_density += t2 - t1;
+    t_pressure += t3 - t2;
+    t_forces += t4 - t3;
+    t_integrate += t5 - t4;
+    ++calls;
+
+    // print once per second
+    if (t5 - last_print >= 1.0) {
+        double total = t_lookup + t_density + t_pressure + t_forces + t_integrate;
+        auto ms = [&](double t) { return 1000.0 * t / calls; };
+        auto pct = [&](double t) { return 100.0 * t / total; };
+
+        std::cout << "---- step timing (avg over " << calls << " steps, "
+            << omp_get_max_threads() << " threads) ----\n"
+            << "lookup:    " << ms(t_lookup) << " ms (" << pct(t_lookup) << "%)\n"
+            << "density:   " << ms(t_density) << " ms (" << pct(t_density) << "%)\n"
+            << "pressure:  " << ms(t_pressure) << " ms (" << pct(t_pressure) << "%)\n"
+            << "forces:    " << ms(t_forces) << " ms (" << pct(t_forces) << "%)\n"
+            << "integrate: " << ms(t_integrate) << " ms (" << pct(t_integrate) << "%)\n"
+            << "total:     " << ms(total) << " ms/step\n";
+
+        t_lookup = t_density = t_pressure = t_forces = t_integrate = 0;
+        calls = 0;
+        last_print = t5;
+    }
+
     return step_size;
 }
 

@@ -47,7 +47,7 @@ public:
     //float radius_increase = 10.0f;
 
     //Manager
-    KernelManager kernel_manager;
+    KernelManager kernel_manager = KernelManager(smoothing_radius);
 
     //Spatial Hash
     Particle *particles = nullptr;

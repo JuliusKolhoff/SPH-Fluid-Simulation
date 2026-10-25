@@ -15,11 +15,8 @@ float KernelManager::W1_viscosity(float dist, float radius)
 }
 
 float KernelManager::smoothing_kernel(float dist, float radius) {
-    if (dist > radius) return 0.0f;
-    // Poly6 (3D): 315 / (64 π h^9) * (h² - r²)³
-    float volume = 64.0f * PI * pow(radius, 9) / 315.0f;
-    float value = std::max(0.0f, radius * radius - dist * dist);
-    return value * value * value / volume;
+    float v = h * h - dist * dist;
+    return v > 0 ? poly6_coef * v * v * v : 0.0f;
 }
 
 float KernelManager::smoothing_kernel_derivative(float dist, float radius) {
@@ -39,11 +36,8 @@ float KernelManager::spiky_kernel(float dist, float radius) {
 }
 
 float KernelManager::spiky_kernel_derivative(float dist, float radius) {
-    if (dist > radius) return 0.0f;
-    // d/dr Spiky (3D): -45 / (π h^6) * (h - r)²
-    float h_r = radius - dist;
-    float scale = 45.0f / (PI * pow(radius, 6));
-    return -scale * h_r * h_r;
+    float v = h - dist;
+    return v > 0 ? spiky_grad_coef * v * v : 0.0f;
 }
 
 

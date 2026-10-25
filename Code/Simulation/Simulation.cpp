@@ -172,7 +172,6 @@ void Simulation::external_forces_step(GLFWwindow* window) {
     }
 }
 
-
 //A Survey on SPH Methods in Computer Graphics Page 12: 5.1 Viscous Fluids
 ////A Survey on SPH Methods in Computer Graphics, Sec 5.1.2, Eq. 68
 vec3 Simulation::calculate_viscosity_force(Particle& particle_i) {

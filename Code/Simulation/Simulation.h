@@ -18,17 +18,17 @@ static const int hashK3 = 12000017;
 class Simulation
 {
 public:
-    static constexpr float PIXELS_PER_METER = 150;
+    static constexpr float PIXELS_PER_METER = 100;
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 3000;
+    unsigned int simulation_size = 10000;
     unsigned int obstacle_particle_count = 20000;
     bool draw_obstacles = false;
 
 
     //CFL
-    float time_scale = 1.0f;   // >1 = fast forward
-    int   max_substeps = 1;     // safety cap so a frame can't take forever
+    float time_scale = 1.0f;
+    int   max_substeps = 5;
 
     float step_size = 0.01f;
 

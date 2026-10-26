@@ -2,15 +2,10 @@
 layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 
-out vec2 center;
-out vec2 oRadius;
 
 uniform float u_radius;
-uniform vec2 u_resolution;
 uniform bool u_render_complex;
 uniform float u_radius_increase;
-
-uniform float u_pixels_per_meter;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -21,6 +16,7 @@ uniform vec3 u_camera_right;
    
 
 in vec3 Color[];
+
 out vec3 oColor;
 out vec2 gTexCoord;
 out vec3 vertex_position;

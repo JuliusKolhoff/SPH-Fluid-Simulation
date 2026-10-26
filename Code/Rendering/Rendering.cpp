@@ -42,11 +42,11 @@ int Rendering::start(GLFWwindow* window) {
     //3d
 
     glm::mat4 projection;
-    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
     
 
-    glm::mat4 model;
-    model = glm::mat4(1.0f);
+    glm::mat4 model = glm::identity<mat4>();
+    model = glm::scale(model, vec3(Simulation::GRID_SCALE));
 
     Shader primitive_shader("VertexShader.vert", "PrimitiveShader.frag");
     primitive_shader.Use();
@@ -69,7 +69,7 @@ int Rendering::start(GLFWwindow* window) {
     shader.setFloat("u_radius", Simulation::get_instance().particle_radius);
     shader.setBool("u_render_complex", Simulation::get_instance().render_complex);
     shader.setFloat("u_radius_increase", Simulation::get_instance().radius_increase);
-    shader.setFloat("u_pixels_per_meter", Simulation::PIXELS_PER_METER);
+    shader.setFloat("u_pixels_per_meter", Simulation::GRID_SCALE);
     shader.setMat4("model",model);
     shader.setMat4("view",camera.GetViewMatrix());
     shader.setMat4("projection",projection);

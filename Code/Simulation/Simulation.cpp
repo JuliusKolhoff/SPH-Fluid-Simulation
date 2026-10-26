@@ -146,8 +146,8 @@ void Simulation::external_forces_step(GLFWwindow* window) {
     double x, y;//Mouse POs
     glfwGetCursorPos(window, &x, &y);
     y = SCR_HEIGHT - y;
-    x /= PIXELS_PER_METER;
-    y /= PIXELS_PER_METER;
+    x /= GRID_SCALE;
+    y /= GRID_SCALE;
 #pragma omp parallel for schedule(dynamic, 32)
     for (int i = 0; i < simulation_size; ++i)
     {
@@ -268,8 +268,8 @@ void Simulation::handle_collisions(Particle& particle)
         pos.x = 0;
         vel.x *= -1 * collisionDamping;
     }
-    if (pos.x >= (SCR_WIDTH / PIXELS_PER_METER)) {
-        pos.x = (SCR_WIDTH / PIXELS_PER_METER);
+    if (pos.x >= bounding_box.x) {
+        pos.x = bounding_box.x;
         vel.x *= -1 * collisionDamping;
     }
 
@@ -278,13 +278,12 @@ void Simulation::handle_collisions(Particle& particle)
         pos.y = 0;
         vel.y *= -1 * collisionDamping;
     }
-    if (pos.y >= (SCR_HEIGHT / PIXELS_PER_METER)) {
-        pos.y = (SCR_HEIGHT / PIXELS_PER_METER);
+    if (pos.y >= bounding_box.y) {
+        pos.y = bounding_box.y;
         vel.y *= -1 * collisionDamping;
     }
-    const float D = SCR_HEIGHT / PIXELS_PER_METER;
     if (pos.z >= 0) { pos.z = 0;  vel.z *= -collisionDamping; }
-    if (pos.z <= -D) { pos.z = -D; vel.z *= -collisionDamping; }
+    if (pos.z <= bounding_box.z) { pos.z = bounding_box.z; vel.z *= -collisionDamping; }
 
     // Update position and velocity
     particle.pos = pos;
@@ -370,12 +369,8 @@ R Simulation::do_for_each_neighbour(Particle& particle_i, R(Simulation::*func)(P
 void Simulation::create_particles(){
     const float diameter = particle_radius * 2.0f;
 
-    // bounds: x in [0, W], y in [0, H], z in [-H, 0]
-    const float W = SCR_WIDTH / PIXELS_PER_METER;
-    const float H = SCR_HEIGHT / PIXELS_PER_METER;
-    const glm::vec3 center(W * 0.5f, H * 0.65f, -H * 0.5f);
+    const glm::vec3 center = 0.5f * bounding_box;
 
-    // particles per cube edge
     int n = (int)std::cbrt((float)simulation_size);
     while ((unsigned int)n * n * n < simulation_size) n++;
 
@@ -401,9 +396,9 @@ void Simulation::create_particles(){
 void Simulation::random_particles() {
     srand(time(0));
     for (unsigned int i = 0; i < simulation_size; i++) {
-        particles[i].pos.x = ((float)rand() / RAND_MAX) * ((SCR_WIDTH / PIXELS_PER_METER) / 2);
-        particles[i].pos.y = ((float)rand() / RAND_MAX) * ((SCR_HEIGHT / PIXELS_PER_METER) / 2);
-        particles[i].pos.z = SCR_HEIGHT / PIXELS_PER_METER * -0.5f;
+        particles[i].pos.x = ((float)rand() / RAND_MAX) * ((SCR_WIDTH / GRID_SCALE) / 2);
+        particles[i].pos.y = ((float)rand() / RAND_MAX) * ((SCR_HEIGHT / GRID_SCALE) / 2);
+        particles[i].pos.z = SCR_HEIGHT / GRID_SCALE * -0.5f;
         particles[i].color = base_particle_color;
     }
     create_obstacles();
@@ -419,8 +414,8 @@ void Simulation::create_obstacles() {
     //---SLOPE---
     //---HOLLOW SPIKE (ridge running left -> right)---
     /*{
-        const float W = SCR_WIDTH / PIXELS_PER_METER;
-        const float D = SCR_HEIGHT / PIXELS_PER_METER;
+        const float W = SCR_WIDTH / GRID_SCALE;
+        const float D = SCR_HEIGHT / GRID_SCALE;
         const float spacing = particle_radius * frequency * 2;
 
         const float spike_height = D * 0.25f;
@@ -462,66 +457,49 @@ void Simulation::create_obstacles() {
     }*/
 
     //---BOUNDS---
-    //SIdes
-    float x = 0,y = 0,z=0;
-    for (unsigned int k = 0; k * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; k += frequency * 2) {
-        z = k * -particle_radius;
-        for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH / PIXELS_PER_METER && count < obstacle_particle_count; i += frequency * 2) {
-            x = i * particle_radius;
-            y = -particle_radius;
-            particles[simulation_size + count].pos = vec3(x, y, z);
-            particles[simulation_size + count].color = obstacle_color;
-            particles[simulation_size + count].movable = false;
-            particles[simulation_size + count].velocity = vec3(0, -0.1f, 0);
-            particles[simulation_size + count].density = target_density;
-            count++;
+    const float height = bounding_box.y;
+    const float width = bounding_box.x;
+    const float depth = fabsf(bounding_box.z);
 
-            y = SCR_HEIGHT / PIXELS_PER_METER + particle_radius;
-            particles[simulation_size + count].pos = vec3(x, y, z);
-            particles[simulation_size + count].color = obstacle_color;
-            particles[simulation_size + count].movable = false;
-            particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
-            particles[simulation_size + count].density = target_density;
-            count++;
-        }
-        for (unsigned int j = 0; j * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; j += frequency * 2) {
-            x = -particle_radius;
-            y = j * particle_radius;
-            particles[simulation_size + count].pos = vec3(x, y, z);
-            particles[simulation_size + count].color = obstacle_color;
-            particles[simulation_size + count].movable = false;
-            particles[simulation_size + count].velocity = vec3(0.1f, 0, 0);
-            particles[simulation_size + count].density = target_density;
-            count++;
+    const float spacing = particle_radius * frequency * 2.0f;
 
-            x = SCR_WIDTH / PIXELS_PER_METER + particle_radius;
-            particles[simulation_size + count].pos = vec3(x, y, z);
-            particles[simulation_size + count].color = obstacle_color;
-            particles[simulation_size + count].movable = false;
-            particles[simulation_size + count].velocity = vec3(-0.1f, 0, 0);
-            particles[simulation_size + count].density = target_density;
-            count++;
+    // number of cells per axis
+    const int nx = std::max(1, (int)std::ceil(width / spacing));
+    const int ny = std::max(1, (int)std::ceil(height / spacing));
+    const int nz = std::max(1, (int)std::ceil(depth / spacing));
+    const float dx = width / nx;
+    const float dy = height / ny;
+    const float dz = depth / nz;
 
-        }
-    }
-    //FRONT / BACk 
-    for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH / PIXELS_PER_METER && count < obstacle_particle_count; i += frequency * 2) {
-        for (unsigned int j = 0; j * particle_radius <= SCR_HEIGHT / PIXELS_PER_METER && count < obstacle_particle_count; j += frequency * 2) {
-            x = i * particle_radius;
-            y = j * particle_radius;
-            particles[simulation_size + count].pos = vec3(x, y, 0);
-            particles[simulation_size + count].color = obstacle_color;
-            particles[simulation_size + count].movable = false;
-            particles[simulation_size + count].velocity = vec3(0, -0.1f, 0);
-            particles[simulation_size + count].density = target_density;
-            count++;
+    const float v = 0.1f;
 
-            particles[simulation_size + count].pos = vec3(x, y, SCR_HEIGHT / -PIXELS_PER_METER);
-            particles[simulation_size + count].color = obstacle_color;
-            particles[simulation_size + count].movable = false;
-            particles[simulation_size + count].velocity = vec3(0, 0.1f, 0);
-            particles[simulation_size + count].density = target_density;
-            count++;
+    for (int k = 0; k <= nz; k++) {
+        for (int j = 0; j <= ny; j++) {
+            for (int i = 0; i <= nx; i++) {
+
+                // only keep points that lie on the surface of the box
+                const bool onX = (i == 0 || i == nx);
+                const bool onY = (j == 0 || j == ny);
+                const bool onZ = (k == 0 || k == nz);
+                if (!(onX || onY || onZ)) continue;
+
+                if (count >= obstacle_particle_count) break;
+
+                Particle& p = particles[simulation_size + count];
+                p.pos = vec3(i * dx, j * dy, -k * dz);
+                p.color = obstacle_color;
+                p.movable = false;
+                p.density = target_density;
+
+                // velocity pointing into the box
+                vec3 vel(0.0f);
+                if (onX) vel.x = (i == 0) ? v : -v;
+                if (onY) vel.y = (j == 0) ? v : -v;
+                if (onZ) vel.z = (k == 0) ? -v : v;   // box extends toward -z
+                p.velocity = vel;
+
+                count++;
+            }
         }
     }
     
@@ -582,7 +560,7 @@ void Simulation::create_obstacles() {
     // }
 }
 void Simulation::sample_at_point(vec3 pos) {
-    sample_point = pos/PIXELS_PER_METER;
+    sample_point = pos/GRID_SCALE;
     print_debug_info();
 
 }

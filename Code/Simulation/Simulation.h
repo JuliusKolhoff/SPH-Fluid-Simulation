@@ -18,12 +18,15 @@ static const int hashK3 = 12000017;
 class Simulation
 {
 public:
-    static constexpr float PIXELS_PER_METER = 75;
+    static constexpr float GRID_SCALE = 0.5f;
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 50000;
-    unsigned int obstacle_particle_count = 500000;
+    unsigned int simulation_size = 40000;
+    unsigned int obstacle_particle_count = 50000;
     bool draw_obstacles = false;
+
+    //BOunds
+    vec3 bounding_box = vec3(20, 15, -15);
 
     //CFL
     float time_scale = 1.0f;

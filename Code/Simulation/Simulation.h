@@ -18,11 +18,11 @@ class Simulation
 {
 public:
 
-    static constexpr float PIXELS_PER_METER = 50;
+    static constexpr float PIXELS_PER_METER = 25;
 
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 1200;
+    unsigned int simulation_size = 12000;
     unsigned int obstacle_particle_count = 250;
 
     float step_size = 0.01f;

@@ -18,10 +18,10 @@ static const int hashK3 = 12000017;
 class Simulation
 {
 public:
-    static constexpr float PIXELS_PER_METER = 100;
+    static constexpr float PIXELS_PER_METER = 75;
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 5000;
+    unsigned int simulation_size = 50000;
     unsigned int obstacle_particle_count = 500000;
     bool draw_obstacles = false;
 
@@ -32,8 +32,8 @@ public:
     float step_size = 0.01f;
 
     float smoothing_radius = 0.576f;
-    float target_density = 20.0f;
-    float k = 1023.0f;
+    float target_density = 30.0f;
+    float k = 27023.0f;
     float viscosity = 6.91f;
     float gravity = 30.81f;
     

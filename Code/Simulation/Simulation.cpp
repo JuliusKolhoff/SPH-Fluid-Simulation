@@ -418,7 +418,7 @@ void Simulation::create_obstacles() {
     int max_fill_depth = 2;
     //---SLOPE---
     //---HOLLOW SPIKE (ridge running left -> right)---
-    {
+    /*{
         const float W = SCR_WIDTH / PIXELS_PER_METER;
         const float D = SCR_HEIGHT / PIXELS_PER_METER;
         const float spacing = particle_radius * frequency * 2;
@@ -459,7 +459,7 @@ void Simulation::create_obstacles() {
                 }
             }
         }
-    }
+    }*/
 
     //---BOUNDS---
     //SIdes

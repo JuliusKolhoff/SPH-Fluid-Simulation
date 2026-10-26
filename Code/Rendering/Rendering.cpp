@@ -152,7 +152,7 @@ int Rendering::start(GLFWwindow* window) {
     glfwTerminate();
     return 0;
 }
-float cooldown;
+float cooldown,cooldown2;
 void Rendering::processInput(GLFWwindow* window,float deltaTime)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -165,11 +165,22 @@ void Rendering::processInput(GLFWwindow* window,float deltaTime)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime); };
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) { camera.ProcessKeyboard(Camera_Movement::UP, deltaTime); };
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) { camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime); };
-    
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && cooldown <= 0) {
+        camera.ProcessKeyboard(Camera_Movement::SPRINT, deltaTime);
+        cooldown = 30;
+    }
     if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS &&  cooldown <= 0) {
         cooldown = 30;
         run_simulation = !run_simulation;
     };
+
+    //DEBUG:
+    if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS && cooldown <= 0) {
+        cooldown = 30;
+        Simulation::get_instance().draw_obstacles = !Simulation::get_instance().draw_obstacles;
+    }
+        
 }
 int Rendering::createWindow(int width,int height, GLFWwindow*& window) {
     glfwInit();

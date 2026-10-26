@@ -96,13 +96,13 @@ void Simulation::advance(float frame_dt, GLFWwindow* window) {
 
 void Simulation::pressure_step() {
     #pragma omp parallel for schedule(static)
-    for (int i = 0; i < simulation_size; ++i) {
+    for (int i = 0; i < simulation_size  +  obstacle_particle_count; ++i) {
         Particle& p = particles[i];
-        if (p.movable) {
+        //if (p.movable) {
             // Berechne Druck basierend auf Dichte-Fehler
             p.pressure = calculate_pressure(p);
 
-        }
+        //}
     }
 }
 
@@ -208,7 +208,7 @@ vec3 Simulation::calculate_viscosity_contribution(Particle& particle_i, Particle
 float Simulation::density_step() {
     float sum = 0;
     #pragma omp parallel for reduction(+:sum) schedule(dynamic, 32)
-    for (int i = 0; i < simulation_size; ++i) {
+    for (int i = 0; i < simulation_size + obstacle_particle_count; ++i) {
         Particle& p = particles[i];
         calculate_density(p);
 
@@ -373,9 +373,9 @@ void Simulation::create_particles(){
     // bounds: x in [0, W], y in [0, H], z in [-H, 0]
     const float W = SCR_WIDTH / PIXELS_PER_METER;
     const float H = SCR_HEIGHT / PIXELS_PER_METER;
-    const glm::vec3 center(W * 0.5f, H * 0.5f, -H * 0.5f);
+    const glm::vec3 center(W * 0.5f, H * 0.65f, -H * 0.5f);
 
-    // particles per cube edge (integer-safe ceil of the cube root)
+    // particles per cube edge
     int n = (int)std::cbrt((float)simulation_size);
     while ((unsigned int)n * n * n < simulation_size) n++;
 
@@ -417,26 +417,49 @@ void Simulation::create_obstacles() {
     bool  fill = true;
     int max_fill_depth = 2;
     //---SLOPE---
-    /*for (unsigned int i = 0; i * particle_radius <= SCR_WIDTH/PIXELS_PER_METER &&  count < obstacle_particle_count; i+= frequency) {
-        float x = i * particle_radius;
-        float y = ((SCR_HEIGHT/PIXELS_PER_METER) / 2) - (i / 2.0f) * particle_radius;
-        if (y < 0) break;
-        if (fill) {
-            for (int j = 0; y > 0 && count < obstacle_particle_count && j < max_fill_depth;j++) {
-                y -= frequency * particle_radius;
-                particles[simulation_size + count].pos = vec3(x, y, 0.0f);
+    //---HOLLOW SPIKE (ridge running left -> right)---
+    {
+        const float W = SCR_WIDTH / PIXELS_PER_METER;
+        const float D = SCR_HEIGHT / PIXELS_PER_METER;
+        const float spacing = particle_radius * frequency * 2;
+
+        const float spike_height = D * 0.25f;
+
+        const float halfD = D * 0.5f;
+        const float slope_len = sqrtf(halfD * halfD + spike_height * spike_height);
+        const unsigned int steps = (unsigned int)ceilf(slope_len / spacing);
+
+        const vec3 left_dir = -vec3(0.0f, halfD, spike_height) / slope_len * 0.1f;
+        const vec3 right_dir = -vec3(0.0f, halfD, -spike_height) / slope_len * 0.1f;
+
+        for (unsigned int s = 1; s <= steps && count < obstacle_particle_count; s++) {
+            float t = (float)s / steps;
+            float y = t * spike_height;
+
+            float z_left = -t * halfD; 
+            float z_right = -D + t * halfD;
+
+            for (unsigned int i = 0; i * particle_radius <= W && count < obstacle_particle_count; i += frequency * 2) {
+                float x = i * particle_radius;
+
+                particles[simulation_size + count].pos = vec3(x, y, z_left);
                 particles[simulation_size + count].color = obstacle_color;
                 particles[simulation_size + count].movable = false;
+                particles[simulation_size + count].velocity = left_dir;
+                particles[simulation_size + count].density = target_density;
                 count++;
+
+                if (s < steps && count < obstacle_particle_count) {
+                    particles[simulation_size + count].pos = vec3(x, y, z_right);
+                    particles[simulation_size + count].color = obstacle_color;
+                    particles[simulation_size + count].movable = false;
+                    particles[simulation_size + count].velocity = right_dir;
+                    particles[simulation_size + count].density = target_density;
+                    count++;
+                }
             }
         }
-        else {
-            particles[simulation_size + count].pos = vec3(x, y, 0.0f);
-            particles[simulation_size + count].color = obstacle_color;
-            particles[simulation_size + count].movable = false;
-            count++;
-        }
-    }*/
+    }
 
     //---BOUNDS---
     //SIdes

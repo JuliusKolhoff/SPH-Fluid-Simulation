@@ -12,7 +12,8 @@ enum Camera_Movement {
     LEFT,
     RIGHT,
     UP,
-    DOWN
+    DOWN,
+    SPRINT
 };
 
 // Default camera values
@@ -27,6 +28,7 @@ const float ZOOM = 45.0f;
 class Camera
 {
 public:
+    int sprinting = 0;
     // camera Attributes
     glm::vec3 Position;
     glm::vec3 Front;
@@ -69,7 +71,9 @@ public:
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
-        float velocity = MovementSpeed * deltaTime;
+        float velocity = MovementSpeed * deltaTime * (sprinting*5+1);
+        if (direction == SPRINT)
+            sprinting = (++sprinting) % 2;
         if (direction == FORWARD)
             Position += Front * velocity;
         if (direction == BACKWARD)

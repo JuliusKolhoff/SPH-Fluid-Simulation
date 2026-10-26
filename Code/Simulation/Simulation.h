@@ -18,10 +18,10 @@ static const int hashK3 = 12000017;
 class Simulation
 {
 public:
-    static constexpr float GRID_SCALE = 0.5f;
+    static constexpr float GRID_SCALE = 1.0f;
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 40000;
+    unsigned int simulation_size = 20000;
     unsigned int obstacle_particle_count = 50000;
     bool draw_obstacles = false;
 
@@ -34,11 +34,16 @@ public:
 
     float step_size = 0.01f;
 
-    float smoothing_radius = 0.576f;
+    /*float smoothing_radius = 0.576f;
     float target_density = 30.0f;
     float k = 27023.0f;
     float viscosity = 6.91f;
-    float gravity = 30.81f;
+    float gravity = 30.81f;*/
+    float smoothing_radius = 0.736f;
+    float target_density = 30.76f;
+    float k = 24700.0f;
+    float viscosity = 6.0f;
+    float gravity = 9.81f;
     
     bool right_mouse_down = false;
     vec3 force_point = vec3(0);

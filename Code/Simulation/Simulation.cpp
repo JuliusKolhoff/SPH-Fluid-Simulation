@@ -490,6 +490,7 @@ void Simulation::create_obstacles() {
                 p.color = obstacle_color;
                 p.movable = false;
                 p.density = target_density;
+                p.mass = 2.0f;
 
                 // velocity pointing into the box
                 vec3 vel(0.0f);

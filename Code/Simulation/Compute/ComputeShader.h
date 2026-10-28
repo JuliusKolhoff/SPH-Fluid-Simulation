@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
+#include <filesystem>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -25,15 +26,8 @@ public:
         {
             // open files
             std::string full_path = std::filesystem::current_path().string() + "\\Code\\Simulation\\Compute\\" + computePath;
-            cShaderFile.open(full_path);
-
-            std::stringstream cShaderStream;
-            // read file's buffer contents into streams
-            cShaderStream << cShaderFile.rdbuf();
-            // close file handlers
-            cShaderFile.close();
-            // convert stream into string
-            computeCode = cShaderStream.str();
+            
+            computeCode = LoadSource(full_path);
         }
         catch (std::ifstream::failure& e)
         {
@@ -55,6 +49,40 @@ public:
         checkCompileErrors(ID, "PROGRAM");
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(compute);
+    }
+
+    static std::string LoadSource(const std::filesystem::path& path, bool root = true)
+    {
+        std::ifstream f(path);
+        if (!f) throw std::runtime_error("Cannot open shader: " + path.string());
+
+        std::string out, line;
+        while (std::getline(f, line)) {
+            // included files may carry a #version for the editor's sake, but only the root file keeps one
+            if (!root && line.rfind("#version", 0) == 0) continue;
+
+            size_t p = line.find("#include");
+            if (p != std::string::npos) {
+                size_t a = line.find('"', p), b = line.rfind('"');
+                if (a != std::string::npos && b > a) {
+                    out += LoadSource(path.parent_path() / line.substr(a + 1, b - a - 1), false);
+                    out += '\n';
+                    continue;
+                }
+            }
+            out += line + '\n';
+        }
+        return out;
+    }
+
+
+    static void Barrier() {
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    }
+
+    void Dispatch(GLuint count) {
+        use();
+        glDispatchCompute((count + 255) / 256, 1, 1);
     }
     // activate the shader
     // ------------------------------------------------------------------------

@@ -1,0 +1,18 @@
+#version 430
+#include "gridhelper.glsl"
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) buffer Positions {
+    vec4 pos[];
+};
+
+void main() {
+    
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= COUNT) return;
+
+    uint c = cellIndex(cellCoord(pos[i].xyz));
+    cell_id[i] = c;
+    rank[i]  = atomicAdd(cell_count[c], 1u);
+}
+

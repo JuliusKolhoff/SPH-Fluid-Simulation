@@ -1,5 +1,4 @@
 #pragma once
-
 #include <filesystem>
 #include <glad/glad.h>
 #include <iostream>
@@ -11,11 +10,27 @@
 #include "Shaders/Shaders.h"
 #include "../Simulation/Compute/ComputeShader.h"
 #include "../Simulation/Compute/GpuBuffer.h"
+#include "Camera.h"
+#include "../Simulation/SimParams.h"
+#include "../Simulation/GridInfo.h"
+#include "../Simulation/Simulation.h"
+
 
 #define println(x) std::cout << x << std::endl
 
 static unsigned int SCR_WIDTH = 1800;
 static unsigned int SCR_HEIGHT = 1000;
+
+struct GridParamsGPU {
+	glm::vec4  origin_cell;       // xyz origin, w cellSize
+	glm::ivec4 dims_count;        // xyz dims,   w numCells
+	uint32_t count;
+	uint32_t _pad[3];       // pad to 48 bytes
+};
+enum Bind : GLuint {
+	BIND_POS, BIND_COLOR, BIND_VEL, BIND_MASS, BIND_DENSITY, BIND_PRESSURE, BIND_MOVABLE,
+	BIND_CELL_ID, BIND_RANK, BIND_CELL_COUNT, BIND_CELL_START, BIND_SORTED
+};
 
 class Rendering
 {

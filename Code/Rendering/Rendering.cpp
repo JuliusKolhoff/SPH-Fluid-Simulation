@@ -20,6 +20,7 @@ Camera camera;
 
 int Rendering::start(GLFWwindow* window) {
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 	gladLoadGL();
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);

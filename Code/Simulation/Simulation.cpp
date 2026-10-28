@@ -315,9 +315,9 @@ static inline uint32_t mix32(uint32_t x) {
 }
 
 int Simulation::hash_cell(glm::ivec3 c) {
-    uint32_t h = (uint32_t)c.x * 73856093u
-        ^ (uint32_t)c.y * 19349663u
-        ^ (uint32_t)c.z * 83492791u;
+    uint32_t h = (uint32_t)c.x * hashK1
+        ^ (uint32_t)c.y * hashK2
+        ^ (uint32_t)c.z * hashK3;
     return (int)(mix32(h) & 0x7fffffffu);
 }
 int Simulation::KeyFromHash(int hash, int tableSize)

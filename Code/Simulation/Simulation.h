@@ -21,16 +21,17 @@ public:
     static constexpr float GRID_SCALE = 1.0f;
 
     float particle_radius = 0.16f;
-    unsigned int simulation_size = 20000;
+    unsigned int simulation_size = 25000;
     unsigned int obstacle_particle_count = 50000;
     bool draw_obstacles = false;
 
     //BOunds
-    vec3 bounding_box = vec3(20, 15, -15);
+    vec3 bounding_box = vec3(20, 15, -15) * 2.0f;
 
     //CFL
     float time_scale = 1.0f;
     int   max_substeps = 5;
+    float cfl_lamda = 0.6f;
 
     float step_size = 0.01f;
 
@@ -58,6 +59,7 @@ public:
 
     //Spatial Hash
     Particle *particles = nullptr;
+    vec3 *accelBuffer = nullptr;
     std::pair<int, int> *spatial_lookup = nullptr;
     int *start_indices = nullptr;
 
@@ -75,6 +77,7 @@ private:
 
     Simulation(){
         particles = new Particle[simulation_size + obstacle_particle_count];
+        accelBuffer = new vec3[simulation_size + obstacle_particle_count];
         spatial_lookup = new std::pair<int, int>[simulation_size + obstacle_particle_count];
         start_indices = new int[simulation_size + obstacle_particle_count];
     };
@@ -104,6 +107,7 @@ public:
         delete[] particles;
         delete[] spatial_lookup;
         delete[] start_indices;
+        delete[] accelBuffer;
     }
     void create_particles();
     void random_particles();

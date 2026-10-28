@@ -83,9 +83,8 @@ void Simulation::calculate_cfl(float max_dt) {
     for (int i = 0; i < simulation_size; ++i)
         v_max = max(v_max, length(vec3(particles[i].velocity)));
 
-    const float lambda = 0.8f;
     float c = sqrtf(7.0f * k / target_density);   // speed of sound
-    step_size = lambda * smoothing_radius / (v_max + c);
+    step_size = cfl_lamda * smoothing_radius / (v_max + c);
     step_size = min(step_size, max_dt);
 }
 void Simulation::advance(float frame_dt, GLFWwindow* window) {
@@ -148,18 +147,22 @@ void Simulation::external_forces_step(GLFWwindow* window) {
     y = SCR_HEIGHT - y;
     x /= GRID_SCALE;
     y /= GRID_SCALE;
-#pragma omp parallel for schedule(dynamic, 32)
+    #pragma omp parallel for schedule(dynamic, 32)
     for (int i = 0; i < simulation_size; ++i)
     {
         Particle& p = particles[i];
         if (p.movable) {
             vec3 accel = calculate_pressue_acceleration(p);
             accel += vec3(0, -gravity, 0);
-            p.velocity += accel * step_size;
-            p.velocity += calculate_viscosity_force(p) * step_size;
+            accelBuffer[i] = accel * step_size;
+            accelBuffer[i] += calculate_viscosity_force(p) * step_size;
+            //p.velocity += accel * step_size;
+            //p.velocity += calculate_viscosity_force(p) * step_size;
 
-            //COlor Coading
-            float speed = length(vec3(p.velocity));
+            ////COlor Coading
+            //float speed = length(vec3(p.velocity));
+            float speed = length(vec3(accelBuffer[i]+p.velocity));
+
             float max_speed = 15.0f;
             float t = clamp(speed / max_speed, 0.0f, 1.0f);
             vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
@@ -169,6 +172,12 @@ void Simulation::external_forces_step(GLFWwindow* window) {
             vec2 externalForces = vec3(0);
 
         }
+    }
+    #pragma omp parallel for schedule(dynamic, 32)
+    for (int i = 0; i < simulation_size; ++i)
+    {
+        Particle& p = particles[i];
+        p.velocity += accelBuffer[i];
     }
 }
 
@@ -254,41 +263,19 @@ void Simulation::update_vertex_data(std::vector<GLfloat> *vertices) {
     }
 }
 
-void Simulation::handle_collisions(Particle& particle)
+void Simulation::handle_collisions(Particle& p)
 {
-    
-    float collisionDamping = 0.95f;
+    const float damping = 0.95f;
+    const float m = particle_radius;
+    const vec3 lo(m, m, bounding_box.z + m);
+    const vec3 hi(bounding_box.x - m, bounding_box.y - m, -m);
 
-    vec3 pos = particle.pos;
-    vec3 vel = particle.velocity;
-
-
-    if (pos.x <= 0)
-    {
-        pos.x = 0;
-        vel.x *= -1 * collisionDamping;
+    for (int a = 0; a < 3; ++a) {
+        if (p.pos[a] < lo[a]) { p.pos[a] = lo[a]; if (p.velocity[a] < 0) p.velocity[a] *= -damping; }
+        if (p.pos[a] > hi[a]) { p.pos[a] = hi[a]; if (p.velocity[a] > 0) p.velocity[a] *= -damping; }
     }
-    if (pos.x >= bounding_box.x) {
-        pos.x = bounding_box.x;
-        vel.x *= -1 * collisionDamping;
-    }
-
-    if (pos.y <= 0)
-    {
-        pos.y = 0;
-        vel.y *= -1 * collisionDamping;
-    }
-    if (pos.y >= bounding_box.y) {
-        pos.y = bounding_box.y;
-        vel.y *= -1 * collisionDamping;
-    }
-    if (pos.z >= 0) { pos.z = 0;  vel.z *= -collisionDamping; }
-    if (pos.z <= bounding_box.z) { pos.z = bounding_box.z; vel.z *= -collisionDamping; }
-
-    // Update position and velocity
-    particle.pos = pos;
-    particle.velocity = vel;
 }
+
 void Simulation::update_spacial_lookup()
 {
     for (int i = 0; i < (int)simulation_size + obstacle_particle_count; ++i) {
@@ -320,11 +307,18 @@ void Simulation::update_spacial_lookup()
 glm::ivec3 Simulation::get_cell_coord(vec3 pos) {
     return glm::ivec3(glm::floor(pos / smoothing_radius));
 }
+static inline uint32_t mix32(uint32_t x) {
+    x ^= x >> 16; x *= 0x7feb352du;
+    x ^= x >> 15; x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+
 int Simulation::hash_cell(glm::ivec3 c) {
-    uint32_t h = (uint32_t)c.x * (uint32_t)hashK1
-        + (uint32_t)c.y * (uint32_t)hashK2
-        + (uint32_t)c.z * (uint32_t)hashK3;
-    return (int)(h & 0x7fffffff);   // always non-negative
+    uint32_t h = (uint32_t)c.x * 73856093u
+        ^ (uint32_t)c.y * 19349663u
+        ^ (uint32_t)c.z * 83492791u;
+    return (int)(mix32(h) & 0x7fffffffu);
 }
 int Simulation::KeyFromHash(int hash, int tableSize)
 {
@@ -561,10 +555,11 @@ void Simulation::create_obstacles() {
     // }
 }
 void Simulation::sample_at_point(vec3 pos) {
-    sample_point = pos/GRID_SCALE;
+    sample_point = pos;
     print_debug_info();
 
 }
+
 void Simulation::print_debug_info() {
     println("-----------------Debug-----------------");
 
@@ -576,6 +571,8 @@ void Simulation::print_debug_info() {
 
     println("");
 
+    
+
     //Sample
     //Count Duplicates
     float duplicates = 0;
@@ -586,7 +583,7 @@ void Simulation::print_debug_info() {
             p.color = obstacle_color;
         glm::ivec3 centre = get_cell_coord(p.pos);
         for (glm::ivec3 offset : cell_offsets) {
-            int key = KeyFromHash(hash_cell(centre + offset), simulation_size);
+            int key = KeyFromHash(hash_cell(centre + offset), simulation_size + obstacle_particle_count);
             if (key == -1) continue;
             int start = start_indices[key];
             for (int s = start; s < simulation_size; ++s) {
@@ -598,4 +595,34 @@ void Simulation::print_debug_info() {
     }
     println("Duplicates: " << duplicates / 2);
 
+    long long collisions = 0, scanned = 0;
+    const int total = (int)(simulation_size + obstacle_particle_count);
+
+    for (int i = 0; i < total; ++i) {
+        Particle& p = particles[i];
+        glm::ivec3 centre = get_cell_coord(p.pos);
+
+        int seen[27]; int n_seen = 0;
+        for (glm::ivec3 offset : cell_offsets) {
+            glm::ivec3 cell = centre + offset;
+            int key = KeyFromHash(hash_cell(cell), total);
+            if (key == -1) continue;
+
+            bool dup = false;
+            for (int s = 0; s < n_seen; s++) if (seen[s] == key) { dup = true; break; }
+            if (dup) continue;
+            seen[n_seen++] = key;
+
+            int start = start_indices[key];
+            if (start == INT_MAX) continue;
+            for (int s = start; s < total; ++s) {
+                if (spatial_lookup[s].second != key) break;
+                scanned++;
+                Particle& p2 = particles[spatial_lookup[s].first];
+                if (get_cell_coord(p2.pos) != cell) collisions++;   // real hash collision
+            }
+        }
+    }
+    println("Hash collisions per particle: " << (double)collisions / total);
+    println("Wasted scans: " << 100.0 * collisions / std::max(1LL, scanned) << " %");
 }

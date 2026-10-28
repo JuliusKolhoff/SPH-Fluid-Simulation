@@ -24,7 +24,8 @@ public:
         try
         {
             // open files
-            cShaderFile.open(computePath);
+            std::string full_path = std::filesystem::current_path().string() + "\\Code\\Simulation\\Compute\\" + computePath;
+            cShaderFile.open(full_path);
 
             std::stringstream cShaderStream;
             // read file's buffer contents into streams
@@ -71,6 +72,11 @@ public:
     void setInt(const std::string& name, int value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+    }
+    // ------------------------------------------------------------------------
+    void setUInt(const std::string& name, int value) const
+    {
+        glUniform1ui(glGetUniformLocation(ID, name.c_str()), value);
     }
     // ------------------------------------------------------------------------
     void setFloat(const std::string& name, float value) const

@@ -1,23 +1,44 @@
 #include "Rendering.h"
 
+struct Particle { glm::vec4 pos; glm::vec4 vel; };
+
+const GLuint N = 100000;
+std::vector<Particle> data(N);
+
 int Rendering::start(GLFWwindow* window) {
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(0);
+    //glfwSwapInterval(0);
 	gladLoadGL();
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
-    //REndering settings----
-    if (Simulation::get_instance().render_complex) {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE);                    // additive glow(soft particles)
-    }
-    else {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);     // standard 
-        glEnable(GL_DEPTH_TEST);
-    }
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);     // standard 
+    //glEnable(GL_DEPTH_TEST);
+
     glEnable(GL_BLEND);
     glEnable(GL_MULTISAMPLE);
 
+
+    //COMPUTE SHADEr
+    srand(time(0));
+    for (auto& p : data) {
+        p.pos = glm::vec4(((float)rand()/RAND_MAX) * 2 - 1, ((float)rand()/RAND_MAX) * 2, ((float)rand()/RAND_MAX) * 2 - 1, 1);
+        p.vel = glm::vec4(0);
+    }
+
+    GpuBuffer<Particle> ssbo = GpuBuffer<Particle>(data.data(), N, GL_DYNAMIC_DRAW);
+    ssbo.BindBase(0);
+
+    ComputeShader cs = ComputeShader("simulation.comp");
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, ssbo.ID);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
+
+    Shader shader("VertexShader.vert", "FragmentShader.frag");
     
     float deltaTime, lastFrame = static_cast<float>(glfwGetTime());
     int timer = 0;
@@ -34,6 +55,22 @@ int Rendering::start(GLFWwindow* window) {
         timer++;
 
         processInput(window, deltaTime);
+
+        glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        cs.use();
+        cs.setFloat("dt", deltaTime);
+        cs.setVec3("gravity", 0, -9.8f, 0);
+        cs.setUInt("count", N);
+        glDispatchCompute((N + 255) / 256, 1, 1);   // ceil(N / local_size_x)
+
+        glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+
+        shader.Use();
+        glBindVertexArray(vao);
+        glDrawArrays(GL_POINTS, 0, N);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

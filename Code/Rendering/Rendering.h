@@ -9,11 +9,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Shaders/Shaders.h"
-#include "BufferObject.h"
-#include "VertexArrayObject.h"
-#include "../Simulation/Particle.h"
-#include "../Simulation/Simulation.h"
-#include "Camera.h"
+#include "../Simulation/Compute/ComputeShader.h"
+#include "../Simulation/Compute/GpuBuffer.h"
 
 #define println(x) std::cout << x << std::endl
 

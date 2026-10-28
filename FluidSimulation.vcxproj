@@ -441,6 +441,7 @@
     <None Include="Code\Rendering\Shaders\GeometryShader.geom" />
     <None Include="Code\Rendering\Shaders\PrimitiveShader.frag" />
     <None Include="Code\Rendering\Shaders\VertexShader.vert" />
+    <None Include="Code\Simulation\Compute\simulation.comp" />
     <None Include="dependencies\include\glm\detail\func_common.inl" />
     <None Include="dependencies\include\glm\detail\func_common_simd.inl" />
     <None Include="dependencies\include\glm\detail\func_exponential.inl" />

@@ -2,6 +2,7 @@
 
 int Rendering::start(GLFWwindow* window) {
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 	gladLoadGL();
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -18,10 +19,21 @@ int Rendering::start(GLFWwindow* window) {
     glEnable(GL_MULTISAMPLE);
 
     
-
+    float deltaTime, lastFrame = static_cast<float>(glfwGetTime());
+    int timer = 0;
     while (!glfwWindowShouldClose(window))
     {
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
         
+        if (timer > 120) {
+            timer -= 120;
+            std::cout << "FPS: " << 1.0f / deltaTime <<  std::endl;
+        }
+        timer++;
+
+        processInput(window, deltaTime);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -31,9 +43,10 @@ int Rendering::start(GLFWwindow* window) {
     glfwTerminate();
     return 0;
 }
-float cooldown,cooldown2;
 void Rendering::processInput(GLFWwindow* window,float deltaTime)
-{ 
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 }
 int Rendering::createWindow(int width,int height, GLFWwindow*& window) {
     glfwInit();

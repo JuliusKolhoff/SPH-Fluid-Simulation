@@ -441,6 +441,7 @@
     <None Include="Code\Rendering\Shaders\GeometryShader.geom" />
     <None Include="Code\Rendering\Shaders\VertexShader.vert" />
     <None Include="Code\Simulation\Compute\clear_grid.comp" />
+    <None Include="Code\Simulation\Compute\reduce_max.comp" />
     <None Include="Code\Simulation\Compute\count_cells.comp" />
     <None Include="Code\Simulation\Compute\density.comp" />
     <None Include="Code\Simulation\Compute\forces.comp" />

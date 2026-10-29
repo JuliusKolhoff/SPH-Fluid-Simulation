@@ -4,27 +4,30 @@
 #include "Compute/ComputeShader.h"
 #include "SimParams.h"
 #include "Compute/Ubo.h"
+#include "Compute/GpuBuffer.h"
 
 class Simulation {
     static Simulation* instance;
-    ComputeShader clear_grid = ComputeShader("clear_grid.comp"),
+    ComputeShader clear_grid =  ComputeShader("clear_grid.comp"),
         count_cells = ComputeShader("count_cells.comp"),
         scan = ComputeShader("scan.comp"),
         scatter = ComputeShader("scatter.comp"),
+        reduceMax = ComputeShader("reduce_max.comp"),
         compDensity = ComputeShader("density.comp"),
         forces = ComputeShader("forces.comp"),
         integrate = ComputeShader("integrate.comp");
         //cs = ComputeShader("simulation.comp");
         ComputeShader cs = ComputeShader("simulation.comp");
+        GpuBuffer maxBuf = GpuBuffer(2 * sizeof(GLuint), nullptr, GL_DYNAMIC_READ);
     Simulation(){
-        pos = new glm::vec4[params.n];
-        color = new glm::vec4[params.n];
-        vel = new glm::vec4[params.n];
-        accel = new glm::vec4[params.n];
-        mass = new float[params.n]{1.0f};
-        density = new glm::vec2[params.n]{ glm::vec2 (1.0f,1.0f)};
-        pressure = new float[params.n] {0.0f};
-        movable = new unsigned int[params.n] {true};
+        pos = new glm::vec4[params.n]();
+        color = new glm::vec4[params.n]();
+        vel = new glm::vec4[params.n]();
+        accel = new glm::vec4[params.n]();
+        mass = new float[params.n];
+        density = new glm::vec2[params.n];
+        pressure = new float[params.n]();
+        movable = new unsigned int[params.n];
 
         std::fill(mass, mass + params.n, 1.0f);
         std::fill(density, density + params.n, glm::vec2(1.0f));
@@ -61,11 +64,6 @@ class Simulation {
             sim.vel[i] = glm::vec4(0.0f);
             sim.color[i] = glm::vec4(1.0f);
         }
-
-
-
-
-
     }
     ~Simulation() {
         delete[] pos;
@@ -95,8 +93,7 @@ public:
         return *instance;
     }
 
-	float step(float max_dt,FrameParamsGPU& frameData, UniformBuffer<FrameParamsGPU>& frameUbo);
-    float calculate_cfl(float dt); 
-    void advance(float frame_dt, FrameParamsGPU& frameData,UniformBuffer<FrameParamsGPU>& frameUbo);
-
+	float step(float dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGPU>& ubo);
+    void advance(float frame_dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGPU>& ubo);
+    float gpu_cfl();
 };

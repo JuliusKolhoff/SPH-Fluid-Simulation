@@ -1,0 +1,27 @@
+#version 430
+#include "simulation_helper.glsl"
+#include "gridhelper.glsl"
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 13) buffer MaxBuf { uint maxV2; uint maxA2; };
+
+shared float sV[256];
+shared float sA[256];
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    uint t = gl_LocalInvocationID.x;
+
+    sV[t] = (i < COUNT) ? dot(vel[i].xyz,   vel[i].xyz)   : 0.0;
+    sA[t] = (i < COUNT) ? dot(accel[i].xyz, accel[i].xyz) : 0.0;
+    barrier();
+
+    for (uint s = 128u; s > 0u; s >>= 1) {
+        if (t < s) { sV[t] = max(sV[t], sV[t+s]); sA[t] = max(sA[t], sA[t+s]); }
+        barrier();
+    }
+    if (t == 0u) {
+        atomicMax(maxV2, floatBitsToUint(sV[0]));
+        atomicMax(maxA2, floatBitsToUint(sA[0]));
+    }
+}

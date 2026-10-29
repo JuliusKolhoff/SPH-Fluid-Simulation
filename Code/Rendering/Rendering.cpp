@@ -132,7 +132,8 @@ int Rendering::start(GLFWwindow* window) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //Simulation::get_instance().calculate_cfl(deltaTime);
-       
+
+
         if (params.run_simulation)
             Simulation::get_instance().advance(deltaTime,frameData,frameUbo);
 

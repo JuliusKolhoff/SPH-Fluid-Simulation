@@ -6,7 +6,8 @@ The SPH implementation follows the paper *"A Survey on SPH Methods in Computer G
 
 <img width="1655" height="973" alt="image" src="https://github.com/user-attachments/assets/576fcdc4-23f5-4cdf-9323-5d8763438aca" />
 
-<img width="1288" height="840" alt="image" src="https://github.com/user-attachments/assets/55490221-72a0-4fa6-a44c-2abcedcc829c" />
+<img width="1423" height="843" alt="image" src="https://github.com/user-attachments/assets/e8a4c971-5e18-4327-a935-081bbe80bb53" />
+
 
 
 

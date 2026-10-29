@@ -14,6 +14,7 @@
 #include "../Simulation/SimParams.h"
 #include "../Simulation/GridInfo.h"
 #include "../Simulation/Simulation.h"
+#include "../Simulation/Compute/Ubo.h"
 
 
 #define println(x) std::cout << x << std::endl

@@ -1,4 +1,56 @@
-[numthreads(1, 1, 1)]
-void main( uint3 DTid : SV_DispatchThreadID )
-{
+#version 430
+#include "simulation_helper.glsl"
+#include "sim_params.glsl"
+#include "gridhelper.glsl"
+layout(local_size_x = 256) in;
+
+float calculate_density(uint i);
+
+void main(){
+	uint i = gl_GlobalInvocationID.x;
+    if (i >= COUNT) return;
+
+    density[i] = vec2(calculate_density(i),0);
+
+    /*float ratio = density[i].x / sim.target_density;
+    vec3 col = mix(vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0), clamp(ratio, 0.0, 1.0)); 
+    col = mix(col, vec3(1.0, 0.0, 0.0), clamp(ratio - 1.0, 0.0, 1.0));
+    color[i] = vec4(col, 1.0);*/
+
+
+}
+//A Survey on SPH Methods in Computer Graphics Page 3: 2.4 Mass Density Estimation
+float calculate_density(uint i) {
+
+    float densitySum = 0;
+
+    vec3  pi = pos[i].xyz;
+    ivec3 c  = cellCoord(pi);
+
+    for (int dz = -1; dz <= 1; dz++) {
+        int z = c.z + dz;
+        if (z < 0 || z >= GRID_DIMS.z) continue;
+
+        for (int dy = -1; dy <= 1; dy++) {
+            int y = c.y + dy;
+            if (y < 0 || y >= GRID_DIMS.y) continue;
+
+            int x0 = max(c.x - 1, 0);
+            int x1 = min(c.x + 1, GRID_DIMS.x - 1);
+            uint s0 = cell_start[cellIndex(ivec3(x0, y, z))];
+            uint s1 = cell_start[cellIndex(ivec3(x1, y, z)) + 1u];
+
+            for (uint s = s0; s < s1; s++) {
+                uint  j  = sorted_ids[s];
+                vec3  d  = pi - pos[j].xyz;
+                float r2 = dot(d, d);
+                if (r2 > H2) continue;
+
+                float densityContribution = poly6(r2);
+                densitySum += mass[j] * densityContribution;
+                
+            }
+        }
+    }
+    return densitySum;
 }

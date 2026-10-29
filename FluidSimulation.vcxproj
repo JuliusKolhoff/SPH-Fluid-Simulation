@@ -137,6 +137,7 @@
     <ClInclude Include="Code\Rendering\Rendering.h" />
     <ClInclude Include="Code\Rendering\Shaders\Shaders.h" />
     <ClInclude Include="Code\Simulation\Compute\GpuBuffer.h" />
+    <ClInclude Include="Code\Simulation\Compute\Ubo.h" />
     <ClInclude Include="Code\Simulation\GridInfo.h" />
     <ClInclude Include="Code\Simulation\SimParams.h" />
     <ClInclude Include="Code\Simulation\Simulation.h" />
@@ -448,6 +449,7 @@
     <None Include="Code\Simulation\Compute\scatter.comp" />
     <None Include="Code\Simulation\Compute\simulation.comp" />
     <None Include="Code\Simulation\Compute\simulation_helper.glsl" />
+    <None Include="Code\Simulation\Compute\sim_params.glsl" />
     <None Include="dependencies\include\glm\detail\func_common.inl" />
     <None Include="dependencies\include\glm\detail\func_common_simd.inl" />
     <None Include="dependencies\include\glm\detail\func_exponential.inl" />

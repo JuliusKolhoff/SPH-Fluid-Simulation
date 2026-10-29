@@ -78,10 +78,13 @@ int Rendering::start(GLFWwindow* window) {
     gp.dims_count = glm::ivec4(grid.dims, (int)grid.numCells);
     gp.count = params.n;
 
-    glGenBuffers(1, &ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(gp), &gp, GL_STATIC_DRAW);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+    UniformBuffer<GridParamsGPU>  gridUbo{0};
+    UniformBuffer<SimParamsGPU>   simUbo{1};
+    UniformBuffer<FrameParamsGPU> frameUbo{2};
+
+    gridUbo.Upload(gp);
+    SimParamsGPU gpuParams{ params };
+    simUbo.Upload(gpuParams);
 
     GpuBuffer cellIDBuffer = GpuBuffer(params.n * sizeof(unsigned int));
     cellIDBuffer.BindBase(BIND_CELL_ID);
@@ -116,6 +119,8 @@ int Rendering::start(GLFWwindow* window) {
         timer++;
 
         processInput(window, deltaTime);
+
+        frameUbo.Upload((FrameParamsGPU&)deltaTime);
 
         glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

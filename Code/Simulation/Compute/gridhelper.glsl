@@ -8,7 +8,10 @@ layout(std140, binding = 0) uniform GridParams {
 #define CELL_SIZE   (grid.origin_cell.w)
 #define GRID_DIMS   (grid.dims_count.xyz)
 #define NUM_CELLS   (uint(grid.dims_count.w))
+
+#ifndef COUNT
 #define COUNT (grid.count)
+#endif
 
 layout(std430, binding = 7)  buffer CellIdBuf    { uint cell_id[];    };  // N
 layout(std430, binding = 8)  buffer RankBuf      { uint rank[];       };  // N

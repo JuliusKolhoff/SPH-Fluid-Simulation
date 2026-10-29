@@ -8,10 +8,10 @@ class Simulation {
     static Simulation* instance;
     ComputeShader clear_grid = ComputeShader("clear_grid.comp"),
         count_cells = ComputeShader("count_cells.comp"),
-    scan = ComputeShader("scan.comp"),
-    scatter = ComputeShader("scatter.comp");
-        /*density = ComputeShader(""),
-        forces = ComputeShader(""),
+        scan = ComputeShader("scan.comp"),
+        scatter = ComputeShader("scatter.comp"),
+        compDensity = ComputeShader("density.comp");
+        /*forces = ComputeShader(""),
         integrate = ComputeShader(""),
         cs = ComputeShader("simulation.comp");*/
     ComputeShader cs = ComputeShader("simulation.comp");

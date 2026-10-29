@@ -16,9 +16,10 @@ void Simulation::step(float dt) {
     ComputeShader::Barrier();
     scatter.Dispatch(params.n);
     ComputeShader::Barrier();
-    /*density.Dispatch(params.N);
+    compDensity.Dispatch(params.n);
     ComputeShader::Barrier();
-    forces.Dispatch(params.N);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+    /*forces.Dispatch(params.N);
     ComputeShader::Barrier();
     integrate.Dispatch(params.N);
     ComputeShader::Barrier();*/

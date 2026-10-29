@@ -10,7 +10,7 @@ struct SimParams
     bool draw_obstacles = false;
 
     //BOunds
-    vec3 bounds = vec3(40, 40, -40);
+    vec3 bounds = vec3(50, 30, -30);
 
     //CFL
     float time_scale = 1.0f;
@@ -20,7 +20,7 @@ struct SimParams
     float step_size = 0.01f;
 
     float smoothing_radius = 0.736f;
-    float target_density = 30.76f;
+    float target_density = 20.76f;
     float k = 24700.0f;
     float viscosity = 6.0f;
     float gravity = 9.81f;
@@ -38,7 +38,7 @@ struct SimParamsGPU {                 // std140, 80 bytes
     float viscosity, gravity;
     float collision_damping, particle_radius;
     float poly6_coef, spiky_grad_coef;
-    float _pad[2];                    // vec4 below must start at offset 48
+    float _pad[2] = { 0,0 };                    // vec4 below must start at offset 48
     glm::vec4 bounds_min;
     glm::vec4 bounds_max;
     SimParamsGPU(SimParams& params) {

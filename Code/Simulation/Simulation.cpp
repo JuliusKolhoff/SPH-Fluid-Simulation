@@ -2,7 +2,10 @@
 
 Simulation* Simulation::instance = nullptr;
 
-void Simulation::step(float dt) {
+float Simulation::step(float dt,FrameParamsGPU &frameData, UniformBuffer<FrameParamsGPU>& frameUbo) {
+    frameData.dt = dt;
+    frameData.step_size = calculate_cfl(dt);
+    frameUbo.Upload(frameData);
     clear_grid.Dispatch(params.numCells);   
     ComputeShader::Barrier();
     count_cells.Dispatch(params.n);         
@@ -18,9 +21,17 @@ void Simulation::step(float dt) {
     integrate.Dispatch(params.n);
     ComputeShader::Barrier();
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+    return frameData.step_size;
 }
 
-void Simulation::calculate_cfl(float max_dt) {
+void Simulation::advance(float frame_dt,FrameParamsGPU& frameData,UniformBuffer<FrameParamsGPU>& frameUbo) {
+    float remaining = std::min(frame_dt, 0.05f) * params.time_scale;
+    for (int n = 0; n < params.max_substeps && remaining > 1e-5f; ++n)
+        remaining -= step(remaining,frameData,frameUbo);
+}
+
+
+float Simulation::calculate_cfl(float max_dt) {
     float v_max = 1.0f;   // avoid div/0
     #pragma omp parallel for schedule(dynamic, 32)
     for (int i = 0; i < params.n; ++i)
@@ -29,4 +40,5 @@ void Simulation::calculate_cfl(float max_dt) {
     float c = sqrtf(7.0f * params.k / params.target_density);   // speed of sound
     params.step_size = params.cfl_lamda * params.smoothing_radius / (v_max + c);
     params.step_size = glm::min(params.step_size, max_dt);
+    return params.step_size;
 }

@@ -127,18 +127,14 @@ int Rendering::start(GLFWwindow* window) {
 
         processInput(window, deltaTime,params);
 
-        //!CFL!
-        Simulation::get_instance().calculate_cfl(deltaTime);
-        //!CFL!
-        frameData.dt = deltaTime;
-        frameData.step_size = params.step_size;
-
-        frameUbo.Upload(frameData);
 
         glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        //Simulation::get_instance().calculate_cfl(deltaTime);
+       
         if (params.run_simulation)
-            Simulation::get_instance().step(deltaTime);
+            Simulation::get_instance().advance(deltaTime,frameData,frameUbo);
 
         shader.Use();
         shader.setMat4("view", camera.GetViewMatrix());

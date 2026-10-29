@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include "Compute/ComputeShader.h"
 #include "SimParams.h"
+#include "Compute/Ubo.h"
 
 class Simulation {
     static Simulation* instance;
@@ -94,6 +95,8 @@ public:
         return *instance;
     }
 
-	void step(float dt);
-    void calculate_cfl(float dt);
+	float step(float max_dt,FrameParamsGPU& frameData, UniformBuffer<FrameParamsGPU>& frameUbo);
+    float calculate_cfl(float dt); 
+    void advance(float frame_dt, FrameParamsGPU& frameData,UniformBuffer<FrameParamsGPU>& frameUbo);
+
 };

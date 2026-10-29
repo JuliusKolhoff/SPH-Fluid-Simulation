@@ -1,4 +1,56 @@
-[numthreads(1, 1, 1)]
-void main( uint3 DTid : SV_DispatchThreadID )
+#version 430
+#include "simulation_helper.glsl"
+#include "sim_params.glsl"
+#include "gridhelper.glsl"
+
+layout(local_size_x = 256) in;
+
+void handle_collisions(uint i);
+void generate_color(uint i);
+
+void main(){
+	uint i = gl_GlobalInvocationID.x;
+    if (i >= COUNT) return;
+
+	vel[i] += accel[i] * frame.step_size;
+	pos[i] += vel[i] * frame.step_size;
+
+    generate_color(i);
+	handle_collisions(i);
+}
+
+void generate_color(uint i){
+
+    float speed = length(vel[i]);
+    float max_speed = 15.0f;
+    float t = clamp(speed / max_speed, 0.0f, 1.0f);
+    vec3 slow_color = vec3(0.05f, 0.15f, 0.6f);
+    vec3 fast_color = vec3(0.9f, 0.95f, 1.0f);
+    color[i] = vec4(mix(slow_color, fast_color, t),1);
+}
+
+void handle_collisions(uint i)
 {
+    const float damping = sim.collision_damping;
+    const float m       = sim.particle_radius;
+
+    const vec3 lo = sim.bounds_min.xyz + vec3(m);
+    const vec3 hi = sim.bounds_max.xyz - vec3(m);
+
+    vec3 p = pos[i].xyz;
+    vec3 v = vel[i].xyz;
+
+    for (int a = 0; a < 3; ++a) {
+        if (p[a] < lo[a]) {
+            p[a] = lo[a];
+            if (v[a] < 0.0) v[a] *= -damping;
+        }
+        if (p[a] > hi[a]) {
+            p[a] = hi[a];
+            if (v[a] > 0.0) v[a] *= -damping;
+        }
+    }
+
+    pos[i].xyz = p;
+    vel[i].xyz = v;
 }

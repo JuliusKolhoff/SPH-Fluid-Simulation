@@ -4,13 +4,13 @@ using glm::vec3, glm::vec4;
 struct SimParams
 {
     static constexpr float world_scale = 1.0f;
-	const unsigned int n = 10000;
+	const unsigned int n = 100000;
 
     float particle_radius = 0.16f;
     bool draw_obstacles = false;
 
     //BOunds
-    vec3 bounds = vec3(10, 10, -10);
+    vec3 bounds = vec3(40, 40, -40);
 
     //CFL
     float time_scale = 1.0f;
@@ -25,8 +25,11 @@ struct SimParams
     float viscosity = 6.0f;
     float gravity = 9.81f;
 
-    const unsigned int numCells = 0;
+    unsigned int numCells = 0;
+
+    bool run_simulation = false;
 };
+
 
 
 struct SimParamsGPU {                 // std140, 80 bytes
@@ -62,4 +65,5 @@ static_assert(offsetof(SimParamsGPU, bounds_min) == 48);
 
 struct FrameParamsGPU {
     float dt;
+    float step_size;
 };

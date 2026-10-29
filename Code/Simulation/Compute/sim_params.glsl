@@ -9,17 +9,15 @@ layout(std140, binding = 1) uniform SimParams {
 } sim;
 
 layout(std140, binding = 2) uniform FrameParams {
-    vec4  force_point;
     float dt;
-    uint  force_active;
-    float force_strength;
+    float step_size;
 } frame;
 
 #define H        (sim.h)
 #define H2       (sim.h2)
 #define DT       (frame.dt)
 
-float poly6(float r2) {
+float poly6(float r2) { 
     float v = H2 - r2;
     return v > 0.0 ? sim.poly6_coef * v * v * v : 0.0;
 }

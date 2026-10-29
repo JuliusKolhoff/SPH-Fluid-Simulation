@@ -30,12 +30,12 @@ int Rendering::start(GLFWwindow* window) {
     SimParams& params = Simulation::get_instance().params;
 
     //COMPUTE SHADEr
-    srand(time(0));
+    /*srand(time(0));
     for (int i = 0; i < params.n; i++) {
-        Simulation::get_instance().pos[i] = glm::vec4(((float)rand() / RAND_MAX) * 10, ((float)rand() / RAND_MAX) * 10, ((float)rand() / RAND_MAX) * -10, 1);
+        Simulation::get_instance().pos[i] = glm::vec4(vec3(((float)rand() / RAND_MAX), ((float)rand() / RAND_MAX), ((float)rand() / RAND_MAX)) * params.bounds, 1);
         Simulation::get_instance().vel[i] = glm::vec4(0);
         Simulation::get_instance().color[i] = glm::vec4(1.0f);
-    }
+    }*/
     //SET Count for helper
     GLuint ubo;
     glGenBuffers(1, &ubo);
@@ -50,6 +50,8 @@ int Rendering::start(GLFWwindow* window) {
     colorBuffer.BindBase(BIND_COLOR);
     GpuBuffer velBuffer = GpuBuffer(params.n * sizeof(glm::vec4), Simulation::get_instance().vel, GL_DYNAMIC_DRAW);
     velBuffer.BindBase(BIND_VEL);
+    GpuBuffer accelBuffer = GpuBuffer(params.n * sizeof(glm::vec4), Simulation::get_instance().accel, GL_DYNAMIC_DRAW);
+    accelBuffer.BindBase(12);
     GpuBuffer massBuffer = GpuBuffer(params.n * sizeof(float), Simulation::get_instance().mass, GL_DYNAMIC_DRAW);
     massBuffer.BindBase(BIND_MASS);
     GpuBuffer densityBuffer = GpuBuffer(params.n * sizeof(glm::vec2), Simulation::get_instance().density, GL_DYNAMIC_DRAW);
@@ -72,6 +74,8 @@ int Rendering::start(GLFWwindow* window) {
     glm::vec3 bmin = glm::min(glm::vec3(0), params.bounds);   // (0, 0, -15)
     glm::vec3 bmax = glm::max(glm::vec3(0), params.bounds);   // (20, 15, 0)
     GridInfo grid = makeGrid(bmin, bmax, params.smoothing_radius);
+    params.numCells = grid.numCells;
+
 
     GridParamsGPU gp;
     gp.origin_cell = glm::vec4(grid.origin, grid.cellSize);
@@ -105,6 +109,9 @@ int Rendering::start(GLFWwindow* window) {
     shader.setMat4("projection", projection);
     
     float deltaTime, lastFrame = static_cast<float>(glfwGetTime());
+
+    FrameParamsGPU frameData;
+
     int timer = 0;
     while (!glfwWindowShouldClose(window))
     {
@@ -118,14 +125,20 @@ int Rendering::start(GLFWwindow* window) {
         }
         timer++;
 
-        processInput(window, deltaTime);
+        processInput(window, deltaTime,params);
 
-        frameUbo.Upload((FrameParamsGPU&)deltaTime);
+        //!CFL!
+        Simulation::get_instance().calculate_cfl(deltaTime);
+        //!CFL!
+        frameData.dt = deltaTime;
+        frameData.step_size = params.step_size;
+
+        frameUbo.Upload(frameData);
 
         glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        Simulation::get_instance().step(deltaTime);
+        if (params.run_simulation)
+            Simulation::get_instance().step(deltaTime);
 
         shader.Use();
         shader.setMat4("view", camera.GetViewMatrix());
@@ -145,7 +158,7 @@ int Rendering::start(GLFWwindow* window) {
     return 0;
 }
 float cooldown;
-void Rendering::processInput(GLFWwindow* window, float deltaTime)
+void Rendering::processInput(GLFWwindow* window, float deltaTime,SimParams& params)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -162,6 +175,12 @@ void Rendering::processInput(GLFWwindow* window, float deltaTime)
         camera.ProcessKeyboard(Camera_Movement::SPRINT, deltaTime);
         cooldown = 30;
     }
+
+    if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && cooldown <= 0) {
+        cooldown = 30;
+        params.run_simulation = !params.run_simulation;
+    };
+
 }
 int Rendering::createWindow(int width,int height, GLFWwindow*& window) {
     glfwInit();

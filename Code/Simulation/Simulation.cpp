@@ -3,11 +3,6 @@
 Simulation* Simulation::instance = nullptr;
 
 void Simulation::step(float dt) {
-    /*cs.use();
-    cs.setFloat("dt", dt);
-    cs.setVec3("gravity", 0, -9.8f, 0);
-    cs.setUInt("count", params.n);
-    cs.Dispatch(params.n);*/
     clear_grid.Dispatch(params.numCells);   
     ComputeShader::Barrier();
     count_cells.Dispatch(params.n);         
@@ -18,9 +13,20 @@ void Simulation::step(float dt) {
     ComputeShader::Barrier();
     compDensity.Dispatch(params.n);
     ComputeShader::Barrier();
-    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-    /*forces.Dispatch(params.N);
+    forces.Dispatch(params.n);
     ComputeShader::Barrier();
-    integrate.Dispatch(params.N);
-    ComputeShader::Barrier();*/
+    integrate.Dispatch(params.n);
+    ComputeShader::Barrier();
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+}
+
+void Simulation::calculate_cfl(float max_dt) {
+    float v_max = 1.0f;   // avoid div/0
+    #pragma omp parallel for schedule(dynamic, 32)
+    for (int i = 0; i < params.n; ++i)
+        v_max = glm::max(v_max, length(vec3(vel[i])));
+
+    float c = sqrtf(7.0f * params.k / params.target_density);   // speed of sound
+    params.step_size = params.cfl_lamda * params.smoothing_radius / (v_max + c);
+    params.step_size = glm::min(params.step_size, max_dt);
 }

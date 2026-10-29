@@ -37,7 +37,7 @@ class Rendering
 {
 private:
 	void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-	void processInput(GLFWwindow* window,float deltaTime);
+	void processInput(GLFWwindow* window,float deltaTime,SimParams& params);
 public: 
 	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 	void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);

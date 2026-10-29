@@ -11,8 +11,10 @@ void main(){
     if (i >= COUNT) return;
 
     density[i] = vec2(calculate_density(i),0);
+    float pressureForce = density[i].x / sim.target_density;
+    pressure[i] = max(0.0f, sim.stiffness * (pow(pressureForce, 7.0f) - 1.0f));
 
-    /*float ratio = density[i].x / sim.target_density;
+    /*float ratio = density[i].x / 10;
     vec3 col = mix(vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0), clamp(ratio, 0.0, 1.0)); 
     col = mix(col, vec3(1.0, 0.0, 0.0), clamp(ratio - 1.0, 0.0, 1.0));
     color[i] = vec4(col, 1.0);*/

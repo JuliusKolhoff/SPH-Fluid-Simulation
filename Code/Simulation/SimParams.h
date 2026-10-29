@@ -4,7 +4,7 @@ using glm::vec3, glm::vec4;
 struct SimParams
 {
     static constexpr float world_scale = 1.0f;
-	const unsigned int n = 100000;
+	const unsigned int n = 400000;
 
     float particle_radius = 0.16f;
     bool draw_obstacles = false;
@@ -15,7 +15,7 @@ struct SimParams
     //CFL
     float time_scale = 1.0f;
     int   max_substeps = 5;
-    float cfl_lamda = 0.6f;
+    float cfl_lamda = 0.4f;
 
     float step_size = 0.01f;
 

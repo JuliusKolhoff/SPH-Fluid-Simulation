@@ -19,38 +19,12 @@ void main(){
 
 void calculate_forces(uint i) {
 
-    vec3  pi = pos[i].xyz;
-    ivec3 c  = cellCoord(pi);
-
     accel[i] = vec4(0);
-
-    for (int dz = -1; dz <= 1; dz++) {
-        int z = c.z + dz;
-        if (z < 0 || z >= GRID_DIMS.z) continue;
-
-        for (int dy = -1; dy <= 1; dy++) {
-            int y = c.y + dy;
-            if (y < 0 || y >= GRID_DIMS.y) continue;
-
-            int x0 = max(c.x - 1, 0);
-            int x1 = min(c.x + 1, GRID_DIMS.x - 1);
-            uint s0 = cell_start[cellIndex(ivec3(x0, y, z))];
-            uint s1 = cell_start[cellIndex(ivec3(x1, y, z)) + 1u];
-
-            for (uint s = s0; s < s1; s++) {
-                uint  j  = sorted_ids[s];
-                vec3  d  = pi - pos[j].xyz;
-                float r2 = dot(d, d);
-                if (r2 > H2) continue;
-
-                accel[i].xyz += -calculate_pressure_contribution(i,j); // MOve Away from pressure
-                accel[i].xyz += calculate_viscosity_contribution(i,j);
-                
-                vec3 externalForces = vec3(0);
-                
-            }
-        }
-    }
+    NEIGHBOR_LOOP_BEGIN(pi, j)
+        accel[i].xyz += -calculate_pressure_contribution(i,j); // MOve Away from pressure
+        accel[i].xyz += calculate_viscosity_contribution(i,j);    
+        vec3 externalForces = vec3(0);
+    NEIGHBOR_LOOP_END
     accel[i].xyz += vec3(0, -sim.gravity, 0);
 
 }

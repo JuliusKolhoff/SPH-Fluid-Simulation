@@ -28,6 +28,7 @@ float Simulation::step(float dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGP
         const GLuint zero[2] = { 0, 0 };
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, maxBuf.id);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(zero), zero);
+        maxBuf.BindBase(13);
         reduceMax.Dispatch(params.n);
         ComputeShader::Barrier();
 

@@ -44,7 +44,8 @@ struct SimParamsGPU {                 // std140, 80 bytes
     float viscosity, gravity;
     float collision_damping, particle_radius;
     float poly6_coef, spiky_grad_coef;
-    float clf_lamda,step_size;
+    float count;
+    float _pad = 0;
     glm::vec4 bounds_min;
     glm::vec4 bounds_max;
     SimParamsGPU(SimParams& params) {
@@ -62,7 +63,7 @@ struct SimParamsGPU {                 // std140, 80 bytes
         h = r;
         poly6_coef = 315.0f / (64.0f * PI * h9);
         spiky_grad_coef = -45.0f / (PI * h6);
-        float _pad[2]{0,0};
+        count = params.n;
         bounds_min = vec4(glm::min(glm::vec3(0), params.bounds),1);
         bounds_max = vec4(glm::max(glm::vec3(0), params.bounds),1);
     }

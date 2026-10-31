@@ -4,6 +4,7 @@ layout(std140, binding = 1) uniform SimParams {
     float viscosity, gravity;
     float collision_damping, particle_radius;
     float poly6_coef, spiky_grad_coef;
+    float count;
     vec4  bounds_min;
     vec4  bounds_max;
 } sim;
@@ -16,6 +17,9 @@ layout(std140, binding = 2) uniform FrameParams {
 #define H        (sim.h)
 #define H2       (sim.h2)
 #define DT       (frame.dt)
+#ifndef COUNT
+#define COUNT (sim.count)
+#endif
 
 float poly6(float r2) { 
     float v = H2 - r2;

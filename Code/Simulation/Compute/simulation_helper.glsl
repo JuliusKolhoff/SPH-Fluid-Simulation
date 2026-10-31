@@ -1,11 +1,3 @@
-layout(std140, binding = 1) uniform Info {
-    uint count;
-} info;
-
-#ifndef COUNT
-#define COUNT (info.count)
-#endif
-
 layout(std430, binding = 0)  buffer PosBuf      { vec4  pos[];      };  // xyz, w unused
 layout(std430, binding = 1)  buffer ColorBuf    { vec4  color[];    };  // rgb, a unused
 layout(std430, binding = 2)  buffer VelBuf      { vec4  vel[];      };  // xyz, w unused

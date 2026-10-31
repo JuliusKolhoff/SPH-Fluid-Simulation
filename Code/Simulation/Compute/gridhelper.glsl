@@ -19,6 +19,21 @@ layout(std430, binding = 9)  buffer CellCountBuf { uint cell_count[]; };  // num
 layout(std430, binding = 10) buffer CellStartBuf { uint cell_start[]; };  // numCells + 1
 layout(std430, binding = 11) buffer SortedBuf    { uint sorted_ids[]; };  // N
 
+//i must be defined before loop
+#define NEIGHBOR_LOOP_BEGIN(P, J) {  vec3 P = pos[i].xyz; ivec3 _c = cellCoord(P); \
+  for (int _dz=-1; _dz<=1; _dz++) { int _z=_c.z+_dz; if (_z<0||_z>=GRID_DIMS.z) continue; \
+  for (int _dy=-1; _dy<=1; _dy++) { int _y=_c.y+_dy; if (_y<0||_y>=GRID_DIMS.y) continue; \
+    uint _s0 = cell_start[cellIndex(ivec3(max(_c.x-1,0), _y, _z))]; \
+    uint _s1 = cell_start[cellIndex(ivec3(min(_c.x+1,GRID_DIMS.x-1), _y, _z)) + 1u]; \
+    for (uint _s=_s0; _s<_s1; _s++) { uint J = sorted_ids[_s]; \
+    vec3 d  = P - pos[J].xyz; float r2 = dot(d, d);if (r2 > H2){ continue;}
+#define NEIGHBOR_LOOP_END }}}}
+
+
+
+
+
+
 ivec3 cellCoord(vec3 p) {
     ivec3 c = ivec3(floor((p - GRID_ORIGIN) / CELL_SIZE));
     return clamp(c, ivec3(0), GRID_DIMS - 1);

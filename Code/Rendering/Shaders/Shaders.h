@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <filesystem>
 
 class Shader
 {
@@ -26,6 +27,10 @@ public:
         if (useGeom) {
             ShaderFromFile(geometryPath,GL_GEOMETRY_SHADER);
         }
+
+        glLinkProgram(ID);
+        checkCompileErrors(ID, "PROGRAM");
+
     }
     void Use()
     {
@@ -139,9 +144,6 @@ private:
         checkCompileErrors(shader, name);
 
         glAttachShader(ID, shader);
-        glLinkProgram(ID);
-        checkCompileErrors(ID, "PROGRAM");
-
         glDeleteShader(shader);
     }
 

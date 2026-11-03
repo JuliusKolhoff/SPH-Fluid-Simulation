@@ -10,7 +10,7 @@ Camera camera;
 int Rendering::start(GLFWwindow* window) {
     glfwMakeContextCurrent(window);
     //glfwSwapInterval(0);
-	gladLoadGL();
+    gladLoadGL();
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
@@ -122,17 +122,18 @@ int Rendering::start(GLFWwindow* window) {
         if (timer > 120) {
             timer -= 120;
             std::cout << "FPS: " << 1.0f / deltaTime <<  std::endl;
+            if (params.run_simulation && params.timed) {
+                for (int i = 0; i < Simulation::kNumPasses; ++i)
+                    std::printf("%-12s %.3f ms\n", Simulation::kPassNames[i], Simulation::get_instance().passMs[i]);
+            }
+            
         }
         timer++;
 
         processInput(window, deltaTime,params);
 
-
         glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        //Simulation::get_instance().calculate_cfl(deltaTime);
-
 
         if (params.run_simulation)
             Simulation::get_instance().advance(deltaTime,frameData,frameUbo);

@@ -23,36 +23,81 @@ float Simulation::step(float dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGP
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
     return dt;
 }
+float Simulation::step_timed(float dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGPU>& ubo) {
 
-    float Simulation::gpu_cfl() {
-        const GLuint zero[2] = { 0, 0 };
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, maxBuf.id);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(zero), zero);
-        maxBuf.BindBase(13);
-        reduceMax.Dispatch(params.n);
+    if (!timersInitialized) {
+        glGenQueries(kNumPasses, timerQueries);
+        timersInitialized = true;
+    }
+
+    fd.dt = dt; fd.step_size = dt; ubo.Upload(fd);
+
+    // Wraps dispatch + barrier in a GPU timer query.
+    // Only one GL_TIME_ELAPSED query may be active at a time, which holds here
+    // because the passes run sequentially.
+    auto timed = [&](int i, auto&& dispatch) {
+        glBeginQuery(GL_TIME_ELAPSED, timerQueries[i]);
+        dispatch();
         ComputeShader::Barrier();
+        glEndQuery(GL_TIME_ELAPSED);
+        };
 
-        GLuint bits[2];
-        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(bits), bits);
-        float v2, a2; memcpy(&v2, &bits[0], 4); memcpy(&a2, &bits[1], 4);
+    timed(0, [&] { clear_grid.Dispatch(params.numCells); });
+    timed(1, [&] { count_cells.Dispatch(params.n); });
+    timed(2, [&] { scan.Dispatch(1); });
+    timed(3, [&] { scatter.Dispatch(params.n); });
+    timed(4, [&] { compDensity.Dispatch(params.n); });
+    timed(5, [&] { forces.Dispatch(params.n); });
+    timed(6, [&] { integrate.Dispatch(params.n); });
 
-        float h = params.smoothing_radius;
-        float c = sqrtf(7.0f * params.k / params.target_density);
-        float vmax = std::max(1.0f, sqrtf(v2));
-        float amax = sqrtf(a2);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
-        float dt = params.cfl_lamda * h / (c + vmax);
-        if (amax > 1e-6f) dt = std::min(dt, 0.25f * sqrtf(h / amax));
-        return dt;
+    // Read back results (blocks until the GPU has finished the frame's passes)
+    for (int i = 0; i < kNumPasses; ++i) {
+        GLuint64 ns = 0;
+        glGetQueryObjectui64v(timerQueries[i], GL_QUERY_RESULT, &ns);
+        passMs[i] = static_cast<float>(ns) * 1e-6f;
     }
 
-    void Simulation::advance(float frame_dt, FrameParamsGPU & fd, UniformBuffer<FrameParamsGPU>&ubo) {
-        float remaining = std::min(frame_dt, 0.05f) * params.time_scale;
-        float dt = gpu_cfl();
+    return dt;
+}
 
-        int n = std::min(params.max_substeps, (int)std::ceil(remaining / dt));
-        float sdt = (n * dt >= remaining) ? remaining / n : dt;  // hit frame time exactly, or run at dt if capped
+float Simulation::gpu_cfl() {
+    const GLuint zero[2] = { 0, 0 };
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, maxBuf.id);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(zero), zero);
+    maxBuf.BindBase(13);
+    reduceMax.Dispatch(params.n);
+    ComputeShader::Barrier();
 
-        for (int i = 0; i < n; ++i) step(sdt, fd, ubo);
+    GLuint bits[2];
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(bits), bits);
+    float v2, a2; memcpy(&v2, &bits[0], 4); memcpy(&a2, &bits[1], 4);
+
+    float h = params.smoothing_radius;
+    float c = sqrtf(7.0f * params.k / params.target_density);
+    float vmax = std::max(1.0f, sqrtf(v2));
+    float amax = sqrtf(a2);
+
+    float dt = params.cfl_lamda * h / (c + vmax);
+    if (amax > 1e-6f) dt = std::min(dt, 0.25f * sqrtf(h / amax));
+    return dt;
+}
+
+void Simulation::advance(float frame_dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGPU>& ubo) {
+    float remaining = std::min(frame_dt, 0.05f) * params.time_scale;
+    float dt = gpu_cfl();
+
+    int n = std::min(params.max_substeps, (int)std::ceil(remaining / dt));
+    float sdt = (n * dt >= remaining) ? remaining / n : dt;  // hit frame time exactly, or run at dt if capped
+
+    for (int i = 0; i < n; ++i) {
+        if (params.timed) {
+            step_timed(sdt, fd, ubo);
+        }
+        else {
+            step(sdt, fd, ubo);
+        }
     }
+}
 

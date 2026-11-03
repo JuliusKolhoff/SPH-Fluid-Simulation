@@ -8,6 +8,7 @@ struct SimParams
 
     float particle_radius = 0.16f;
     bool draw_obstacles = false;
+    bool timed = true;
 
     //BOunds
     vec3 bounds = vec3(50, 30, -30);

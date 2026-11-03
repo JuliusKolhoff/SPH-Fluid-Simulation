@@ -8,6 +8,8 @@
 
 class Simulation {
     static Simulation* instance;
+    bool   timersInitialized = false;
+
     ComputeShader clear_grid =  ComputeShader("clear_grid.comp"),
         count_cells = ComputeShader("count_cells.comp"),
         scan = ComputeShader("scan.comp"),
@@ -69,13 +71,13 @@ class Simulation {
         delete[] pos;
         delete[] color;
         delete[] vel;
+        delete[] accel;
         delete[] mass;
         delete[] density;
         delete[] pressure;
         delete[] movable;
     }
 public:
-
     glm::vec4 *pos;
     glm::vec4 *color;
     glm::vec4 *vel;
@@ -85,7 +87,16 @@ public:
     float *pressure;
     unsigned int *movable;
 
+
+    static constexpr int kNumPasses = 7;
+    static constexpr const char* kPassNames[kNumPasses] = {
+        "clear_grid", "count_cells", "scan", "scatter", "density", "forces", "integrate"
+    };
+    GLuint timerQueries[kNumPasses] = {};
+    float passMs[kNumPasses] = {};
+
     struct SimParams params;
+
     static Simulation& get_instance() {
         if (instance == nullptr) {
             instance = new Simulation();
@@ -94,6 +105,7 @@ public:
     }
 
 	float step(float dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGPU>& ubo);
+	float step_timed(float dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGPU>& ubo);
     void advance(float frame_dt, FrameParamsGPU& fd, UniformBuffer<FrameParamsGPU>& ubo);
     float gpu_cfl();
 };

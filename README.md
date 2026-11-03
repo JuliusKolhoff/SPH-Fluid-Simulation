@@ -1,4 +1,4 @@
-# 3D SPH Fluid Simulation (!Work in Progess!)
+# 3D SPH Fluid Simulation
 
 A real-time, 3D **Smoothed Particle Hydrodynamics (SPH)** fluid simulation written in C++ with an OpenGL renderer. The simulation is a weakly compressible SPH(WCSPH) using OpenMp parallelization and spatial hashing for improved performance.
 

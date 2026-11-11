@@ -1351,6 +1351,8 @@
     <None Include="Code\Simulation\Compute\simulation_helper.glsl" />
     <None Include="Code\Simulation\Compute\sim_params.glsl" />
     <None Include="Code\Simulation\Compute\reduce_max.comp" />
+    <None Include="Code\Rendering\Shaders\PointShader.frag" />
+    <None Include="Code\Rendering\Shaders\PointShader.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dependencies\include\glm\detail\glm.cpp">

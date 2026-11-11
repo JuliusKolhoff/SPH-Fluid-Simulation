@@ -125,6 +125,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -443,6 +444,8 @@
     <None Include=".gitignore" />
     <None Include="Code\Rendering\Shaders\FragmentShader.frag" />
     <None Include="Code\Rendering\Shaders\GeometryShader.geom" />
+    <None Include="Code\Rendering\Shaders\PointShader.frag" />
+    <None Include="Code\Rendering\Shaders\PointShader.vert" />
     <None Include="Code\Rendering\Shaders\VertexShader.vert" />
     <None Include="Code\Simulation\Compute\clear_grid.comp" />
     <None Include="Code\Simulation\Compute\reduce_max.comp" />

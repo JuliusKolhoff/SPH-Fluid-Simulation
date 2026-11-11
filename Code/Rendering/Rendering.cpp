@@ -16,9 +16,10 @@ int Rendering::start(GLFWwindow* window) {
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);     // standard 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
-    glEnable(GL_BLEND);
-    glEnable(GL_MULTISAMPLE);
+    //glEnable(GL_BLEND);
+    //glEnable(GL_MULTISAMPLE);
 
     glm::mat4 projection;
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
@@ -101,12 +102,14 @@ int Rendering::start(GLFWwindow* window) {
     GpuBuffer sortedIdsBuffer = GpuBuffer(params.n * sizeof(unsigned int));
     sortedIdsBuffer.BindBase(BIND_SORTED);
 
-    Shader shader("VertexShader.vert", "FragmentShader.frag", "GeometryShader.geom");
+    //Shader shader("VertexShader.vert", "FragmentShader.frag", "GeometryShader.geom");
+    Shader shader("PointShader.vert", "PointShader.frag");
     shader.Use();
     shader.setFloat("u_radius", 0.16f);
     shader.setMat4("model", model);
     shader.setMat4("view", camera.GetViewMatrix());
     shader.setMat4("projection", projection);
+    shader.setFloat("u_viewport_h", (float)SCR_HEIGHT);
     
     float deltaTime, lastFrame = static_cast<float>(glfwGetTime());
 

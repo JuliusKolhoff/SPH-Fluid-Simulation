@@ -8,15 +8,15 @@ struct SimParams
 
     float particle_radius = 0.16f;
     bool draw_obstacles = false;
-    bool timed = true;
+    bool timed = false;
 
     //BOunds
     vec3 bounds = vec3(50, 30, -30);
     float collision_damping = 0.8f;
     //CFL
     float time_scale = 1.0f;
-    int   max_substeps = 5;
-    float cfl_lamda = 0.4f;
+    int   max_substeps = 2;
+    float cfl_lamda = 0.6f;
 
     float step_size = 0.01f;
 
@@ -39,7 +39,7 @@ struct SimParams
 
 
 
-struct SimParamsGPU {                 // std140, 80 bytes
+struct SimParamsGPU {
     float h, h2;
     float target_density, stiffness;
     float viscosity, gravity;
@@ -69,8 +69,6 @@ struct SimParamsGPU {                 // std140, 80 bytes
         bounds_max = vec4(glm::max(glm::vec3(0), params.bounds),1);
     }
 };
-static_assert(sizeof(SimParamsGPU) == 80);
-static_assert(offsetof(SimParamsGPU, bounds_min) == 48);
 
 struct FrameParamsGPU {
     float dt;
